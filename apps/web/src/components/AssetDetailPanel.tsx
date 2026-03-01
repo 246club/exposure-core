@@ -266,6 +266,7 @@ export default function AssetDetailPanel({
   const protocolAppUrl = getProtocolAppUrl(selectedNode);
   const protocolAuditUrl = getProtocolAuditUrl(selectedNode);
   const explorerUrl = getExplorerUrl(selectedNode);
+  const primaryExternalUrl = protocolAppUrl ?? explorerUrl;
 
   return (
     <div className="h-full flex flex-col bg-white overflow-y-auto custom-scrollbar border-l border-black">
@@ -361,28 +362,17 @@ export default function AssetDetailPanel({
           </div>
         </div>
 
-        {(protocolAppUrl || explorerUrl || protocolAuditUrl) && (
+        {(primaryExternalUrl || protocolAuditUrl) && (
           <div className="flex items-center gap-3 mt-8">
-            {protocolAppUrl && (
+            {primaryExternalUrl && (
               <a
-                href={protocolAppUrl}
+                href={primaryExternalUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-3 py-2 border border-black/10 bg-white hover:bg-black/[0.02] text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
               >
                 <ExternalLink className="w-3 h-3" />
                 Open Protocol
-              </a>
-            )}
-            {!protocolAppUrl && explorerUrl && (
-              <a
-                href={explorerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-2 border border-black/10 bg-white hover:bg-black/[0.02] text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Open Address
               </a>
             )}
             {protocolAuditUrl && (
