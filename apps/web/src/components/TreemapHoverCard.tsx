@@ -2,7 +2,8 @@ import type { GraphNode } from "@/types";
 import { cn } from "@/lib/utils";
 import { currencyFormatter } from "@/utils/formatters";
 
-interface TreemapHoverCardDatum {
+export interface TreemapHoverCardDatum {
+  nodeId?: string;
   name?: string;
   originalValue?: number;
   value?: number;
@@ -20,35 +21,53 @@ interface TreemapHoverCardPayloadItem {
 export const TreemapHoverCard = ({
   active,
   payload,
+  dataItem,
+  downstream,
 }: {
   active?: boolean;
   payload?: TreemapHoverCardPayloadItem[];
+  dataItem?: TreemapHoverCardDatum | null;
+  downstream?: { name: string; allocationUsd: number }[];
 }) => {
-  if (!active) return null;
+  const resolved = dataItem ?? payload?.[0]?.payload;
+  const isActive = Boolean(dataItem) || Boolean(active);
 
-  const dataItem = payload?.[0]?.payload;
-  if (!dataItem) return null;
+  if (!isActive) return null;
+  if (!resolved) return null;
 
-  const name = String(dataItem?.name ?? "");
-  const originalValue = Number(dataItem?.originalValue ?? dataItem?.value ?? 0);
+  const name = String(resolved?.name ?? "");
+  const originalValue = Number(resolved?.originalValue ?? resolved?.value ?? 0);
   const percent =
-    typeof dataItem?.percent === "number" ? dataItem.percent : null;
-  const isOthers = dataItem?.isOthers;
-  const isTerminal = dataItem?.isTerminal;
-  const childCount = dataItem?.childCount;
+    typeof resolved?.percent === "number" ? resolved.percent : null;
+  const isOthers = resolved?.isOthers;
+  const isTerminal = resolved?.isTerminal;
+  const childCount = resolved?.childCount;
 
   const baseKind = isOthers
     ? `Aggregate (${childCount} Items)`
     : isTerminal
       ? "Terminal Asset"
-      : String(dataItem?.fullNode?.details?.kind ?? "");
+      : String(resolved?.fullNode?.details?.kind ?? "");
 
   const subtype =
-    typeof dataItem?.fullNode?.details?.subtype === "string"
-      ? dataItem.fullNode.details.subtype.trim()
+    typeof resolved?.fullNode?.details?.subtype === "string"
+      ? resolved.fullNode.details.subtype.trim()
       : "";
 
   const kind = subtype && !isOthers ? `${baseKind} • ${subtype}` : baseKind;
+
+  const downstreamRows = Array.isArray(downstream)
+    ? downstream
+        .filter(
+          (d) =>
+            d &&
+            typeof d.name === "string" &&
+            typeof d.allocationUsd === "number" &&
+            Number.isFinite(d.allocationUsd) &&
+            d.allocationUsd !== 0,
+        )
+        .slice(0, 4)
+    : [];
 
   return (
     <div
@@ -108,6 +127,30 @@ export const TreemapHoverCard = ({
           {percent === null ? "—" : `${(percent * 100).toFixed(2)}%`}
         </div>
       </div>
+
+      {downstreamRows.length > 0 && !isOthers && (
+        <>
+          <div className="h-px w-full bg-white/5 my-4" />
+          <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em] mb-3">
+            1-Hop Downstream
+          </div>
+          <div className="flex flex-col gap-2">
+            {downstreamRows.map((row) => (
+              <div
+                key={`${row.name}:${row.allocationUsd}`}
+                className="flex items-center justify-between"
+              >
+                <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight truncate pr-3">
+                  {row.name}
+                </div>
+                <div className="text-[10px] font-black text-white/70 font-mono">
+                  {currencyFormatter.format(Math.abs(row.allocationUsd))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };

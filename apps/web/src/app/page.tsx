@@ -22,6 +22,7 @@ import {
 import Image from "next/image";
 import { FilterPill } from "@/components/FilterPill";
 import { cn } from "@/lib/utils";
+import { currencyFormatter, formatChainLabel } from "@/utils/formatters";
 
 function HomeInner() {
   const router = useRouter();
@@ -216,6 +217,122 @@ function HomeInner() {
     dynamicIndex,
   ]);
 
+  const dropdownResults = useMemo(() => {
+    // Group across networks (chains) to reduce duplicate-looking entries.
+    // Avoid double-count inflation by taking the max TVL per chain within each group.
+    interface Group {
+      key: string;
+      protocol: string;
+      name: string;
+      logoKeys?: string[];
+      chains: {
+        chain: string;
+        entry: SearchIndexEntry;
+        tvlUsd: number | null;
+      }[];
+      totalTvlUsd: number | null;
+      primary: SearchIndexEntry;
+    }
+
+    interface GroupInternal {
+      key: string;
+      protocol: string;
+      name: string;
+      logoKeys?: string[];
+      primary: SearchIndexEntry;
+      byChain: Map<string, { entry: SearchIndexEntry; tvlUsd: number | null }>;
+    }
+
+    const groups = new Map<string, GroupInternal>();
+
+    const safeTvl = (v: unknown): number | null =>
+      typeof v === "number" && Number.isFinite(v) ? v : null;
+
+    for (const entry of filteredResults) {
+      const protocol = (entry.protocol ?? "").trim();
+      const name = (entry.name ?? "").trim();
+      const chain = (entry.chain ?? "global").trim().toLowerCase();
+
+      const key = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
+
+      const tvlUsd = safeTvl(entry.tvlUsd);
+
+      const existing = groups.get(key);
+      if (!existing) {
+        const byChain = new Map<
+          string,
+          { entry: SearchIndexEntry; tvlUsd: number | null }
+        >();
+        byChain.set(chain, { entry, tvlUsd });
+        groups.set(key, {
+          key,
+          protocol,
+          name: name || entry.name,
+          logoKeys: entry.logoKeys,
+          primary: entry,
+          byChain,
+        });
+        continue;
+      }
+
+      // Keep best-per-chain entry by TVL.
+      const currentBest = existing.byChain.get(chain);
+      if (!currentBest) {
+        existing.byChain.set(chain, { entry, tvlUsd });
+      } else {
+        const a = currentBest.tvlUsd ?? -1;
+        const b = tvlUsd ?? -1;
+        if (b > a) existing.byChain.set(chain, { entry, tvlUsd });
+      }
+
+      // Primary entry is the highest-TVL representative across all chains.
+      const primaryTvl = safeTvl(existing.primary.tvlUsd) ?? -1;
+      const nextTvl = tvlUsd ?? -1;
+      if (nextTvl > primaryTvl) existing.primary = entry;
+    }
+
+    const result: Group[] = Array.from(groups.values()).map((g) => {
+      const chains: Group["chains"] = Array.from(g.byChain.entries()).map(
+        ([chain, rec]) => ({
+          chain,
+          entry: rec.entry,
+          tvlUsd: rec.tvlUsd,
+        }),
+      );
+
+      chains.sort((a, b) => (b.tvlUsd ?? -1) - (a.tvlUsd ?? -1));
+
+      const finiteTvls = chains
+        .map((c) => c.tvlUsd)
+        .filter(
+          (v): v is number => typeof v === "number" && Number.isFinite(v),
+        );
+      const totalTvlUsd = (() => {
+        if (!finiteTvls.length) return null;
+        if (finiteTvls.length === 1) return finiteTvls[0] ?? null;
+        const max = Math.max(...finiteTvls);
+        const min = Math.min(...finiteTvls);
+        const eps = Math.max(1, max) * 1e-9;
+        if (Math.abs(max - min) <= eps) return max;
+        return finiteTvls.reduce((sum, v) => sum + v, 0);
+      })();
+
+      return {
+        key: g.key,
+        protocol: g.protocol,
+        name: g.name,
+        logoKeys: g.logoKeys,
+        chains,
+        totalTvlUsd,
+        primary: g.primary,
+      };
+    });
+
+    result.sort((a, b) => (b.totalTvlUsd ?? -1) - (a.totalTvlUsd ?? -1));
+
+    return result;
+  }, [filteredResults]);
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex flex-col font-sans selection:bg-black selection:text-white">
       {/* Central Search Section */}
@@ -395,26 +512,73 @@ function HomeInner() {
             {showDropdown && (
               <div className="absolute top-full left-0 right-0 mt-4 bg-white border border-black/[0.08] rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="max-h-[400px] overflow-y-auto custom-scrollbar p-2">
-                  {filteredResults.length > 0 ? (
-                    filteredResults.slice(0, 8).map((result) => {
+                  {dropdownResults.length > 0 ? (
+                    dropdownResults.slice(0, 8).map((group) => {
+                      const primary = group.primary;
                       const logoPaths = getNodeLogos({
-                        name: result.name,
-                        protocol: result.protocol,
-                        logoKeys: result.logoKeys,
+                        name: group.name,
+                        protocol: primary.protocol,
+                        logoKeys: primary.logoKeys ?? group.logoKeys,
                       }).slice(0, 2);
 
                       const protocolFallbackPath =
-                        result.protocol && hasProtocolLogo(result.protocol)
-                          ? getProtocolLogoPath(result.protocol)
+                        primary.protocol && hasProtocolLogo(primary.protocol)
+                          ? getProtocolLogoPath(primary.protocol)
                           : "";
+
+                      const chainLabel = (() => {
+                        const shortLabel = (value: string): string => {
+                          const v = value.trim().toLowerCase();
+                          switch (v) {
+                            case "eth":
+                            case "ethereum":
+                              return "ETH";
+                            case "arb":
+                            case "arbitrum":
+                            case "arbitrum-one":
+                              return "ARB";
+                            case "op":
+                            case "optimism":
+                              return "OP";
+                            case "base":
+                              return "BASE";
+                            case "polygon":
+                            case "matic":
+                              return "POLY";
+                            case "uni":
+                            case "unichain":
+                              return "UNI";
+                            case "hyper":
+                            case "hyperliquid":
+                              return "HYPER";
+                            case "global":
+                              return "GLOBAL";
+                            default:
+                              return formatChainLabel(v).toUpperCase();
+                          }
+                        };
+
+                        const chainNames = group.chains
+                          .map((c) => shortLabel(c.chain))
+                          .filter((label) => label.length > 0);
+
+                        if (chainNames.length <= 1) return chainNames[0] ?? "";
+                        if (chainNames.length <= 3) return chainNames.join("/");
+                        return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
+                      })();
+
+                      const tvlLabel =
+                        typeof group.totalTvlUsd === "number"
+                          ? currencyFormatter.format(group.totalTvlUsd)
+                          : "—";
 
                       return (
                         <Link
-                          key={`${result.id}-${result.chain}-${result.protocol}`}
-                          href={`/asset/${result.id}?chain=${result.chain}&protocol=${encodeURIComponent(result.protocol)}`}
+                          key={group.key}
+                          href={`/asset/${primary.id}?chain=${primary.chain}&protocol=${encodeURIComponent(primary.protocol)}`}
                           className="flex items-center justify-between p-4 hover:bg-black/[0.02] rounded-2xl transition-all group"
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
                             <div className="w-10 h-10 bg-black/[0.03] rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
                               {logoPaths.length > 0 ? (
                                 <div className="flex items-center -space-x-2">
@@ -426,7 +590,7 @@ function HomeInner() {
                                     >
                                       <Image
                                         src={logoPath}
-                                        alt={result.name}
+                                        alt={group.name}
                                         width={18}
                                         height={18}
                                         className="object-contain"
@@ -447,20 +611,31 @@ function HomeInner() {
                                 </div>
                               ) : (
                                 <span className="text-[10px] font-black">
-                                  {result.name.charAt(0)}
+                                  {group.name.charAt(0)}
                                 </span>
                               )}
                             </div>
-                            <div>
-                              <div className="text-[11px] font-black uppercase tracking-tight italic group-hover:text-[#00FF85] transition-colors">
-                                {result.name}
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-black uppercase tracking-tight italic group-hover:text-[#00FF85] transition-colors truncate">
+                                {group.name}
                               </div>
-                              <div className="text-[9px] font-bold text-black/30 uppercase tracking-widest mt-0.5">
-                                {result.protocol} • {result.chain}
+                              <div className="text-[9px] font-bold text-black/30 uppercase tracking-widest mt-0.5 truncate">
+                                {group.protocol} • {chainLabel}
                               </div>
                             </div>
                           </div>
-                          <ChevronRight className="w-3.5 h-3.5 text-black/10 group-hover:translate-x-1 group-hover:text-black transition-all" />
+
+                          <div className="flex items-center gap-4 shrink-0">
+                            <div className="text-right">
+                              <div className="text-[8px] font-black text-black/20 uppercase tracking-[0.22em]">
+                                TVL
+                              </div>
+                              <div className="text-[10px] font-black text-black/70 font-mono tracking-tight">
+                                {tvlLabel}
+                              </div>
+                            </div>
+                            <ChevronRight className="w-3.5 h-3.5 text-black/10 group-hover:translate-x-1 group-hover:text-black transition-all" />
+                          </div>
                         </Link>
                       );
                     })
@@ -472,10 +647,10 @@ function HomeInner() {
                     </div>
                   )}
                 </div>
-                {filteredResults.length > 8 && (
+                {dropdownResults.length > 8 && (
                   <div className="p-4 bg-black/[0.01] border-t border-black/[0.03] text-center">
                     <p className="text-[9px] font-black text-black/20 uppercase tracking-[0.3em]">
-                      +{filteredResults.length - 8} more results available
+                      +{dropdownResults.length - 8} more results available
                     </p>
                   </div>
                 )}

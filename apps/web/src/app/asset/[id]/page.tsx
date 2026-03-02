@@ -343,6 +343,7 @@ export default function AssetPage() {
           <AssetDetailPanel
             selectedNode={selectedNode}
             edges={graphData.edges}
+            nodes={graphData.nodes}
             rootNodeId={focusRootNodeId || rootNode?.id}
             originId={origin}
             tvl={tvl}

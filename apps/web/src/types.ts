@@ -4,6 +4,7 @@ export interface NodeDetails {
   healthRate?: number;
   subtype?: string;
   underlyingSymbol?: string;
+  hiddenInProtocolUi?: boolean;
 }
 
 export interface GraphNode {
