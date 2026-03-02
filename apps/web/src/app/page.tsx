@@ -24,6 +24,62 @@ import { FilterPill } from "@/components/FilterPill";
 import { cn } from "@/lib/utils";
 import { currencyFormatter, formatChainLabel } from "@/utils/formatters";
 
+const shortChainLabel = (value: string): string => {
+  const v = value.trim().toLowerCase();
+  switch (v) {
+    case "eth":
+    case "ethereum":
+      return "ETH";
+    case "arb":
+    case "arbitrum":
+    case "arbitrum-one":
+      return "ARB";
+    case "op":
+    case "optimism":
+      return "OP";
+    case "base":
+      return "BASE";
+    case "polygon":
+    case "matic":
+      return "POLY";
+    case "uni":
+    case "unichain":
+      return "UNI";
+    case "hyper":
+    case "hyperliquid":
+      return "HYPER";
+    case "global":
+      return "GLOBAL";
+    default:
+      return formatChainLabel(v).toUpperCase();
+  }
+};
+
+const buildChainLabel = (
+  chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
+): string => {
+  const chainNames = Array.from(
+    new Set(
+      chains
+        .map((c) => shortChainLabel(c.chain))
+        .filter((label) => label.length > 0),
+    ),
+  );
+
+  if (chainNames.length <= 1) return chainNames[0] ?? "";
+  if (chainNames.length <= 3) return chainNames.join("/");
+  return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
+};
+
+const getDropdownAssetKey = (id: string): string => {
+  const parts = id
+    .split(":")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  if (parts.length >= 3) return parts.slice(2).join(":").toLowerCase();
+  return id.trim().toLowerCase();
+};
+
 function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -219,7 +275,6 @@ function HomeInner() {
 
   const dropdownResults = useMemo(() => {
     // Group across networks (chains) to reduce duplicate-looking entries.
-    // Avoid double-count inflation by taking the max TVL per chain within each group.
     interface Group {
       key: string;
       protocol: string;
@@ -240,7 +295,10 @@ function HomeInner() {
       name: string;
       logoKeys?: string[];
       primary: SearchIndexEntry;
-      byChain: Map<string, { entry: SearchIndexEntry; tvlUsd: number | null }>;
+      entries: Map<
+        string,
+        { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }
+      >;
     }
 
     const groups = new Map<string, GroupInternal>();
@@ -252,37 +310,35 @@ function HomeInner() {
       const protocol = (entry.protocol ?? "").trim();
       const name = (entry.name ?? "").trim();
       const chain = (entry.chain ?? "global").trim().toLowerCase();
+      const assetKey = getDropdownAssetKey(entry.id);
 
-      const key = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
+      const key = `${protocol.toLowerCase()}|${name.toLowerCase()}|${assetKey}`;
 
       const tvlUsd = safeTvl(entry.tvlUsd);
 
       const existing = groups.get(key);
       if (!existing) {
-        const byChain = new Map<
+        const entries = new Map<
           string,
-          { entry: SearchIndexEntry; tvlUsd: number | null }
+          { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }
         >();
-        byChain.set(chain, { entry, tvlUsd });
+        const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
+        entries.set(entryKey, { chain, entry, tvlUsd });
         groups.set(key, {
           key,
           protocol,
           name: name || entry.name,
           logoKeys: entry.logoKeys,
           primary: entry,
-          byChain,
+          entries,
         });
         continue;
       }
 
-      // Keep best-per-chain entry by TVL.
-      const currentBest = existing.byChain.get(chain);
-      if (!currentBest) {
-        existing.byChain.set(chain, { entry, tvlUsd });
-      } else {
-        const a = currentBest.tvlUsd ?? -1;
-        const b = tvlUsd ?? -1;
-        if (b > a) existing.byChain.set(chain, { entry, tvlUsd });
+      const entryKey = `${chain}|${entry.id.trim().toLowerCase()}`;
+      const current = existing.entries.get(entryKey);
+      if (!current || (tvlUsd ?? -1) > (current.tvlUsd ?? -1)) {
+        existing.entries.set(entryKey, { chain, entry, tvlUsd });
       }
 
       // Primary entry is the highest-TVL representative across all chains.
@@ -292,9 +348,9 @@ function HomeInner() {
     }
 
     const result: Group[] = Array.from(groups.values()).map((g) => {
-      const chains: Group["chains"] = Array.from(g.byChain.entries()).map(
-        ([chain, rec]) => ({
-          chain,
+      const chains: Group["chains"] = Array.from(g.entries.values()).map(
+        (rec) => ({
+          chain: rec.chain,
           entry: rec.entry,
           tvlUsd: rec.tvlUsd,
         }),
@@ -526,46 +582,7 @@ function HomeInner() {
                           ? getProtocolLogoPath(primary.protocol)
                           : "";
 
-                      const chainLabel = (() => {
-                        const shortLabel = (value: string): string => {
-                          const v = value.trim().toLowerCase();
-                          switch (v) {
-                            case "eth":
-                            case "ethereum":
-                              return "ETH";
-                            case "arb":
-                            case "arbitrum":
-                            case "arbitrum-one":
-                              return "ARB";
-                            case "op":
-                            case "optimism":
-                              return "OP";
-                            case "base":
-                              return "BASE";
-                            case "polygon":
-                            case "matic":
-                              return "POLY";
-                            case "uni":
-                            case "unichain":
-                              return "UNI";
-                            case "hyper":
-                            case "hyperliquid":
-                              return "HYPER";
-                            case "global":
-                              return "GLOBAL";
-                            default:
-                              return formatChainLabel(v).toUpperCase();
-                          }
-                        };
-
-                        const chainNames = group.chains
-                          .map((c) => shortLabel(c.chain))
-                          .filter((label) => label.length > 0);
-
-                        if (chainNames.length <= 1) return chainNames[0] ?? "";
-                        if (chainNames.length <= 3) return chainNames.join("/");
-                        return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
-                      })();
+                      const chainLabel = buildChainLabel(group.chains);
 
                       const tvlLabel =
                         typeof group.totalTvlUsd === "number"
@@ -575,7 +592,7 @@ function HomeInner() {
                       return (
                         <Link
                           key={group.key}
-                          href={`/asset/${primary.id}?chain=${primary.chain}&protocol=${encodeURIComponent(primary.protocol)}`}
+                          href={`/asset/${encodeURIComponent(primary.id)}?chain=${encodeURIComponent(primary.chain)}&protocol=${encodeURIComponent(primary.protocol)}`}
                           className="flex items-center justify-between p-4 hover:bg-black/[0.02] rounded-2xl transition-all group"
                         >
                           <div className="flex items-center gap-4 min-w-0">

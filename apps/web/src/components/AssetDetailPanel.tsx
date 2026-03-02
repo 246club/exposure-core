@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   RotateCcw,
 } from "lucide-react";
+import { useMemo } from "react";
 import {
   getNodeLogos,
   getProtocolLogoPath,
@@ -59,6 +60,8 @@ const slugify = (input: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
+
+const normalizeGraphId = (id: string): string => id.trim().toLowerCase();
 
 const morphoChainPath = (chain: string): string => {
   const c = chain.trim().toLowerCase();
@@ -276,13 +279,24 @@ export default function AssetDetailPanel({
 
   const outgoingCount = edges.filter((e) => e.from === selectedNode.id).length;
 
-  const nodesById = (() => {
+  const nodesById = useMemo(() => {
     const map = new Map<string, GraphNode>();
     for (const n of nodes) {
-      map.set(n.id.trim().toLowerCase(), n);
+      map.set(normalizeGraphId(n.id), n);
     }
     return map;
-  })();
+  }, [nodes]);
+
+  const edgesByFrom = useMemo(() => {
+    const map = new Map<string, GraphEdge[]>();
+    for (const edge of edges) {
+      const fromId = normalizeGraphId(edge.from);
+      const list = map.get(fromId);
+      if (list) list.push(edge);
+      else map.set(fromId, [edge]);
+    }
+    return map;
+  }, [edges]);
 
   const selectedKind = (selectedNode.details?.kind ?? "").trim().toLowerCase();
   const selectedSubtype =
@@ -292,14 +306,14 @@ export default function AssetDetailPanel({
   const isVaultLike =
     selectedKind === "yield" || selectedSubtype.includes("vault");
 
-  const marketExposure = (() => {
+  const marketExposure = useMemo(() => {
     if (!isVaultLike) return null;
 
-    const outgoing = edges.filter((e) => e.from === selectedNode.id);
+    const outgoing = edgesByFrom.get(normalizeGraphId(selectedNode.id)) ?? [];
     if (outgoing.length === 0) return null;
 
     const isMarket = (id: string): boolean => {
-      const node = nodesById.get(id.trim().toLowerCase());
+      const node = nodesById.get(normalizeGraphId(id));
       const kind = (node?.details?.kind ?? "").trim().toLowerCase();
       return kind === "lending market";
     };
@@ -309,7 +323,7 @@ export default function AssetDetailPanel({
 
     for (const e of outgoing) {
       const toId = e.to;
-      const toNode = nodesById.get(toId.trim().toLowerCase());
+      const toNode = nodesById.get(normalizeGraphId(toId));
       const allocUsd = Math.abs(e.allocationUsd);
       if (!Number.isFinite(allocUsd) || allocUsd <= 0) continue;
 
@@ -323,7 +337,7 @@ export default function AssetDetailPanel({
       }
 
       // Indirect exposure: selected vault -> intermediate -> market.
-      const childOutgoing = edges.filter((x) => x.from === toId);
+      const childOutgoing = edgesByFrom.get(normalizeGraphId(toId)) ?? [];
       if (childOutgoing.length === 0) continue;
 
       const marketEdges = childOutgoing.filter((x) => isMarket(x.to));
@@ -341,7 +355,7 @@ export default function AssetDetailPanel({
         if (!Number.isFinite(impliedUsd) || impliedUsd <= 0) continue;
 
         const marketId = me.to;
-        const marketNode = nodesById.get(marketId.trim().toLowerCase());
+        const marketNode = nodesById.get(normalizeGraphId(marketId));
         const name = marketNode?.name ?? marketId;
         const prev = indirectByMarket.get(marketId);
         indirectByMarket.set(marketId, {
@@ -362,7 +376,7 @@ export default function AssetDetailPanel({
       direct: direct.slice(0, 5),
       indirect: indirect.slice(0, 5),
     };
-  })();
+  }, [selectedNode, isVaultLike, edgesByFrom, nodesById]);
 
   const rootOutgoingTotal = (() => {
     if (!rootNodeId) return 0;
@@ -427,7 +441,7 @@ export default function AssetDetailPanel({
           )}
           {originId && (
             <Link
-              href={`/asset/${originId}`}
+              href={`/asset/${encodeURIComponent(originId)}`}
               className="flex items-center gap-2 text-[10px] font-black text-black/40 hover:text-black transition-all uppercase tracking-[0.2em] group border-l border-black/10 pl-6"
             >
               <RotateCcw className="w-3 h-3 transform group-hover:rotate-[-45deg] transition-transform" />

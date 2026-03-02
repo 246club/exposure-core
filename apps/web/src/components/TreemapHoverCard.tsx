@@ -27,7 +27,7 @@ export const TreemapHoverCard = ({
   active?: boolean;
   payload?: TreemapHoverCardPayloadItem[];
   dataItem?: TreemapHoverCardDatum | null;
-  downstream?: { name: string; allocationUsd: number }[];
+  downstream?: { id: string; name: string; allocationUsd: number }[];
 }) => {
   const resolved = dataItem ?? payload?.[0]?.payload;
   const isActive = Boolean(dataItem) || Boolean(active);
@@ -61,6 +61,7 @@ export const TreemapHoverCard = ({
         .filter(
           (d) =>
             d &&
+            typeof d.id === "string" &&
             typeof d.name === "string" &&
             typeof d.allocationUsd === "number" &&
             Number.isFinite(d.allocationUsd) &&
@@ -136,10 +137,7 @@ export const TreemapHoverCard = ({
           </div>
           <div className="flex flex-col gap-2">
             {downstreamRows.map((row) => (
-              <div
-                key={`${row.name}:${row.allocationUsd}`}
-                className="flex items-center justify-between"
-              >
+              <div key={row.id} className="flex items-center justify-between">
                 <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight truncate pr-3">
                   {row.name}
                 </div>
