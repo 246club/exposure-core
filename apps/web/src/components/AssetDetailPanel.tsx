@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   RotateCcw,
 } from "lucide-react";
+import { useMemo } from "react";
 import {
   getNodeLogos,
   getProtocolLogoPath,
@@ -25,6 +26,7 @@ import { getAddress } from "viem";
 interface AssetDetailPanelProps {
   selectedNode: GraphNode | null;
   edges: GraphEdge[];
+  nodes: GraphNode[];
   rootNodeId?: string;
   originId?: string;
   tvl?: number | null;
@@ -58,6 +60,8 @@ const slugify = (input: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+/, "")
     .replace(/-+$/, "");
+
+const normalizeGraphId = (id: string): string => id.trim().toLowerCase();
 
 const morphoChainPath = (chain: string): string => {
   const c = chain.trim().toLowerCase();
@@ -246,6 +250,7 @@ const getProtocolAuditUrl = (node: GraphNode): string | null => {
 export default function AssetDetailPanel({
   selectedNode,
   edges,
+  nodes,
   rootNodeId,
   originId,
   tvl,
@@ -273,6 +278,105 @@ export default function AssetDetailPanel({
     .reduce((acc, e) => acc + e.allocationUsd, 0);
 
   const outgoingCount = edges.filter((e) => e.from === selectedNode.id).length;
+
+  const nodesById = useMemo(() => {
+    const map = new Map<string, GraphNode>();
+    for (const n of nodes) {
+      map.set(normalizeGraphId(n.id), n);
+    }
+    return map;
+  }, [nodes]);
+
+  const edgesByFrom = useMemo(() => {
+    const map = new Map<string, GraphEdge[]>();
+    for (const edge of edges) {
+      const fromId = normalizeGraphId(edge.from);
+      const list = map.get(fromId);
+      if (list) list.push(edge);
+      else map.set(fromId, [edge]);
+    }
+    return map;
+  }, [edges]);
+
+  const selectedKind = (selectedNode.details?.kind ?? "").trim().toLowerCase();
+  const selectedSubtype =
+    typeof selectedNode.details?.subtype === "string"
+      ? selectedNode.details.subtype.trim().toLowerCase()
+      : "";
+  const isVaultLike =
+    selectedKind === "yield" || selectedSubtype.includes("vault");
+
+  const marketExposure = useMemo(() => {
+    if (!isVaultLike) return null;
+
+    const outgoing = edgesByFrom.get(normalizeGraphId(selectedNode.id)) ?? [];
+    if (outgoing.length === 0) return null;
+
+    const isMarket = (id: string): boolean => {
+      const node = nodesById.get(normalizeGraphId(id));
+      const kind = (node?.details?.kind ?? "").trim().toLowerCase();
+      return kind === "lending market";
+    };
+
+    const direct: { id: string; name: string; usd: number }[] = [];
+    const indirectByMarket = new Map<string, { name: string; usd: number }>();
+
+    for (const e of outgoing) {
+      const toId = e.to;
+      const toNode = nodesById.get(normalizeGraphId(toId));
+      const allocUsd = Math.abs(e.allocationUsd);
+      if (!Number.isFinite(allocUsd) || allocUsd <= 0) continue;
+
+      if (isMarket(toId)) {
+        direct.push({
+          id: toId,
+          name: toNode?.name ?? toId,
+          usd: allocUsd,
+        });
+        continue;
+      }
+
+      // Indirect exposure: selected vault -> intermediate -> market.
+      const childOutgoing = edgesByFrom.get(normalizeGraphId(toId)) ?? [];
+      if (childOutgoing.length === 0) continue;
+
+      const marketEdges = childOutgoing.filter((x) => isMarket(x.to));
+      if (marketEdges.length === 0) continue;
+
+      const childTotal = childOutgoing.reduce(
+        (sum, x) => sum + Math.abs(x.allocationUsd),
+        0,
+      );
+      if (!childTotal) continue;
+
+      for (const me of marketEdges) {
+        const weight = Math.abs(me.allocationUsd) / childTotal;
+        const impliedUsd = allocUsd * weight;
+        if (!Number.isFinite(impliedUsd) || impliedUsd <= 0) continue;
+
+        const marketId = me.to;
+        const marketNode = nodesById.get(normalizeGraphId(marketId));
+        const name = marketNode?.name ?? marketId;
+        const prev = indirectByMarket.get(marketId);
+        indirectByMarket.set(marketId, {
+          name,
+          usd: (prev?.usd ?? 0) + impliedUsd,
+        });
+      }
+    }
+
+    direct.sort((a, b) => b.usd - a.usd);
+    const indirect = Array.from(indirectByMarket.entries())
+      .map(([id, v]) => ({ id, name: v.name, usd: v.usd }))
+      .sort((a, b) => b.usd - a.usd);
+
+    if (direct.length === 0 && indirect.length === 0) return null;
+
+    return {
+      direct: direct.slice(0, 5),
+      indirect: indirect.slice(0, 5),
+    };
+  }, [selectedNode, isVaultLike, edgesByFrom, nodesById]);
 
   const rootOutgoingTotal = (() => {
     if (!rootNodeId) return 0;
@@ -337,7 +441,7 @@ export default function AssetDetailPanel({
           )}
           {originId && (
             <Link
-              href={`/asset/${originId}`}
+              href={`/asset/${encodeURIComponent(originId)}`}
               className="flex items-center gap-2 text-[10px] font-black text-black/40 hover:text-black transition-all uppercase tracking-[0.2em] group border-l border-black/10 pl-6"
             >
               <RotateCcw className="w-3 h-3 transform group-hover:rotate-[-45deg] transition-transform" />
@@ -390,6 +494,11 @@ export default function AssetDetailPanel({
                 {subtypeLabel && (
                   <span className="px-2 py-0.5 border border-black/10 text-black/60 text-[9px] font-black uppercase tracking-widest bg-white">
                     {subtypeLabel.toUpperCase()}
+                  </span>
+                )}
+                {selectedNode.details?.hiddenInProtocolUi && (
+                  <span className="px-2 py-0.5 border border-amber-300 text-amber-800 text-[9px] font-black uppercase tracking-widest bg-amber-50">
+                    Hidden In Protocol UI
                   </span>
                 )}
                 {chainLogoPath && (
@@ -460,9 +569,6 @@ export default function AssetDetailPanel({
                 {percentFormatter.format(shareOfAllocationMap)}
               </p>
             </div>
-            <div className="text-[40px] font-black text-black/[0.03] absolute -right-2 -bottom-4 select-none italic tracking-tighter uppercase transition-colors">
-              {percentFormatter.format(shareOfAllocationMap)}
-            </div>
           </div>
         </div>
       </div>
@@ -497,6 +603,68 @@ export default function AssetDetailPanel({
             </div>
           </div>
         </section>
+
+        {marketExposure && (
+          <section>
+            <h3 className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+              <Info className="w-3.5 h-3.5" />
+              Market_Exposure
+            </h3>
+
+            <div className="space-y-5">
+              {marketExposure.direct.length > 0 && (
+                <div>
+                  <div className="text-[9px] font-black text-black/30 uppercase tracking-[0.2em] mb-3">
+                    Direct (Vault -&gt; Market)
+                  </div>
+                  <div className="space-y-2">
+                    {marketExposure.direct.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="text-[11px] font-bold text-black/50 uppercase tracking-tight truncate pr-4">
+                          {row.name}
+                        </span>
+                        <span className="text-[11px] font-black text-black font-mono">
+                          {currencyFormatter.format(row.usd)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {marketExposure.indirect.length > 0 && (
+                <div>
+                  <div className="text-[9px] font-black text-black/30 uppercase tracking-[0.2em] mb-3">
+                    Indirect (Scaled 2-Hop)
+                  </div>
+                  <div className="space-y-2">
+                    {marketExposure.indirect.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="text-[11px] font-bold text-black/50 uppercase tracking-tight truncate pr-4">
+                          {row.name}
+                        </span>
+                        <span className="text-[11px] font-black text-black font-mono">
+                          {currencyFormatter.format(row.usd)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-[10px] text-black/30 font-medium leading-relaxed">
+                Direct uses 1-hop edge weights. Indirect scales 2-hop market
+                edges by the intermediate node's internal distribution.
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Risk Profile */}
         <section>

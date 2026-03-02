@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ResponsiveContainer, Treemap, Tooltip } from "recharts";
+import { ResponsiveContainer, Treemap } from "recharts";
 import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
 import { getNodeTypeLabel } from "@/lib/nodeType";
-import { TreemapHoverCard } from "@/components/TreemapHoverCard";
+import {
+  TreemapHoverCard,
+  type TreemapHoverCardDatum,
+} from "@/components/TreemapHoverCard";
 import { AssetTreeMapTile } from "@/components/AssetTreeMapTile";
 import { normalizeId } from "@/utils/formatters";
 
@@ -41,6 +44,22 @@ export default function AssetTreeMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [hoverState, setHoverState] = useState<{
+    datum: TreemapHoverCardDatum;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [tooltipSize, setTooltipSize] = useState<{
+    w: number;
+    h: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setHoverState(null);
+    setTooltipSize(null);
+  }, [rootNodeId, isOthersView]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -60,6 +79,60 @@ export default function AssetTreeMap({
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!hoverState) return;
+    const el = tooltipRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const w = Math.max(0, Math.floor(rect.width));
+    const h = Math.max(0, Math.floor(rect.height));
+    if (w === 0 || h === 0) return;
+    setTooltipSize({ w, h });
+  }, [hoverState?.datum]);
+
+  const graphIndex = useMemo(() => {
+    if (!data) return null;
+
+    const nodesById = new Map<string, GraphNode>();
+    for (const n of data.nodes) nodesById.set(normalizeId(n.id), n);
+
+    const edgesByFrom = new Map<string, GraphEdge[]>();
+    for (const edge of data.edges) {
+      const fromId = normalizeId(edge.from);
+      const list = edgesByFrom.get(fromId);
+      if (list) list.push(edge);
+      else edgesByFrom.set(fromId, [edge]);
+    }
+
+    return { nodesById, edgesByFrom };
+  }, [data]);
+
+  const downstream = useMemo(() => {
+    const nodeId = hoverState?.datum?.nodeId ?? null;
+    if (!nodeId) return [];
+    if (!graphIndex) return [];
+    if (nodeId === "others") return [];
+
+    const outgoing = graphIndex.edgesByFrom.get(normalizeId(nodeId)) ?? [];
+    if (outgoing.length === 0) return [];
+
+    const enriched = outgoing
+      .map((e) => {
+        const to = graphIndex.nodesById.get(normalizeId(e.to));
+        return {
+          id: e.to,
+          name: to?.name ?? e.to,
+          allocationUsd:
+            typeof e.allocationUsd === "number" ? e.allocationUsd : 0,
+        };
+      })
+      .filter((x) => Number.isFinite(x.allocationUsd) && x.allocationUsd !== 0)
+      .sort((a, b) => Math.abs(b.allocationUsd) - Math.abs(a.allocationUsd));
+
+    return enriched.slice(0, 4);
+  }, [hoverState, graphIndex]);
+
   const chartData = useMemo(() => {
     if (!data || !rootNodeId) return [];
 
@@ -75,16 +148,21 @@ export default function AssetTreeMap({
       children = children.filter((c) => scope.has(c.id.trim().toLowerCase()));
     }
 
-    const nodesById = new Map(
-      data.nodes.map((n) => [normalizeId(n.id), n] as const),
-    );
-    const edgesByFrom = new Map<string, GraphEdge[]>();
-    for (const edge of data.edges) {
-      const fromId = normalizeId(edge.from);
-      const list = edgesByFrom.get(fromId);
-      if (list) list.push(edge);
-      else edgesByFrom.set(fromId, [edge]);
-    }
+    const nodesById =
+      graphIndex?.nodesById ??
+      new Map(data.nodes.map((n) => [normalizeId(n.id), n] as const));
+    const edgesByFrom =
+      graphIndex?.edgesByFrom ??
+      (() => {
+        const map = new Map<string, GraphEdge[]>();
+        for (const edge of data.edges) {
+          const fromId = normalizeId(edge.from);
+          const list = map.get(fromId);
+          if (list) list.push(edge);
+          else map.set(fromId, [edge]);
+        }
+        return map;
+      })();
 
     const isTerminalNodeId = (nodeId: string): boolean => {
       return (edgesByFrom.get(normalizeId(nodeId)) ?? []).length === 0;
@@ -117,6 +195,9 @@ export default function AssetTreeMap({
 
       const isTerminal = isLeafInSnapshot && !hasDownstreamGraph;
 
+      const directLeavesCount = (edgesByFrom.get(normalizeId(c.id)) ?? [])
+        .length;
+
       const typeLabel = c.node ? getNodeTypeLabel(c.node.details) : "";
 
       return {
@@ -143,6 +224,7 @@ export default function AssetTreeMap({
         lendingPosition: c.edge.lendingPosition,
         isTerminal,
         typeLabel,
+        directLeavesCount,
       };
     });
 
@@ -192,6 +274,7 @@ export default function AssetTreeMap({
           isOthers: true,
           childIds: minor.map((c) => c.nodeId),
           childCount: minor.length,
+          directLeavesCount: minor.length,
         },
       ];
     }
@@ -204,6 +287,7 @@ export default function AssetTreeMap({
     othersChildrenIds,
     containerSize,
     graphRootIds,
+    graphIndex,
   ]);
 
   if (!data || chartData.length === 0) {
@@ -223,28 +307,82 @@ export default function AssetTreeMap({
           </div>
         </div>
       )}
-      <ResponsiveContainer width="100%" height="100%">
-        <Treemap
-          data={chartData}
-          dataKey="value"
-          aspectRatio={16 / 9}
-          stroke="transparent"
-          content={
-            <AssetTreeMapTile
-              onSelect={onSelect}
-              onSelectOthers={onSelectOthers}
-              selectedNodeId={selectedNodeId}
-              pressedNodeId={pressedNodeId}
-              onPressStart={setPressedNodeId}
-              onPressEnd={() => setPressedNodeId(null)}
-              lastClick={lastClick ?? null}
-            />
-          }
-          isAnimationActive={false}
+      <div
+        key={`${rootNodeId ?? ""}|${isOthersView ? "others" : "main"}|${
+          Array.isArray(othersChildrenIds) ? othersChildrenIds.length : 0
+        }`}
+        className="w-full h-full exposure-treemap-enter"
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <Treemap
+            data={chartData}
+            dataKey="value"
+            aspectRatio={16 / 9}
+            stroke="transparent"
+            content={
+              <AssetTreeMapTile
+                onSelect={onSelect}
+                onSelectOthers={onSelectOthers}
+                selectedNodeId={selectedNodeId}
+                pressedNodeId={pressedNodeId}
+                onPressStart={setPressedNodeId}
+                onPressEnd={() => setPressedNodeId(null)}
+                lastClick={lastClick ?? null}
+                onHover={(
+                  datum: Record<string, unknown>,
+                  point: { clientX: number; clientY: number },
+                ) => {
+                  const el = containerRef.current;
+                  if (!el) return;
+                  const rect = el.getBoundingClientRect();
+                  const x = point.clientX - rect.left;
+                  const y = point.clientY - rect.top;
+                  setHoverState({
+                    datum: datum as unknown as TreemapHoverCardDatum,
+                    x: Math.max(0, Math.min(rect.width, x)),
+                    y: Math.max(0, Math.min(rect.height, y)),
+                  });
+                }}
+                onHoverEnd={() => setHoverState(null)}
+              />
+            }
+            isAnimationActive={false}
+          />
+        </ResponsiveContainer>
+      </div>
+
+      {hoverState && (
+        <div
+          ref={tooltipRef}
+          className="absolute z-40 pointer-events-none"
+          style={(() => {
+            const pad = 14;
+            const offsetX = 18;
+            const offsetY = 14;
+
+            const w = tooltipSize?.w ?? 280;
+            const h = tooltipSize?.h ?? 170;
+
+            const maxX = Math.max(pad, containerSize.width - pad - w);
+            const maxY = Math.max(pad, containerSize.height - pad - h);
+
+            const left = Math.max(pad, Math.min(maxX, hoverState.x + offsetX));
+            const top = Math.max(pad, Math.min(maxY, hoverState.y + offsetY));
+
+            return {
+              left,
+              top,
+              willChange: "transform",
+              transform: "translate3d(0, 0, 0)",
+            } as React.CSSProperties;
+          })()}
         >
-          <Tooltip content={<TreemapHoverCard />} cursor={false} />
-        </Treemap>
-      </ResponsiveContainer>
+          <TreemapHoverCard
+            dataItem={hoverState.datum}
+            downstream={downstream}
+          />
+        </div>
+      )}
     </div>
   );
 }

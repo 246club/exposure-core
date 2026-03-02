@@ -172,7 +172,10 @@ export default function AssetPage() {
   const breadcrumbs = useMemo(() => {
     const items = [];
     if (origin && origin !== id) {
-      items.push({ label: origin.toUpperCase(), href: `/asset/${origin}` });
+      items.push({
+        label: origin.toUpperCase(),
+        href: `/asset/${encodeURIComponent(origin)}`,
+      });
     }
     items.push({ label: pageTitle.toUpperCase(), current: true });
     return items;
@@ -302,7 +305,7 @@ export default function AssetPage() {
         <div className="flex items-center gap-6">
           {origin && (
             <Link
-              href={`/asset/${origin}`}
+              href={`/asset/${encodeURIComponent(origin)}`}
               className="flex items-center gap-2 px-4 py-3 bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-black/80 transition-all shadow-lg shadow-black/10 group"
             >
               <RotateCcw className="w-3.5 h-3.5 group-hover:rotate-[-45deg] transition-transform" />
@@ -343,6 +346,7 @@ export default function AssetPage() {
           <AssetDetailPanel
             selectedNode={selectedNode}
             edges={graphData.edges}
+            nodes={graphData.nodes}
             rootNodeId={focusRootNodeId || rootNode?.id}
             originId={origin}
             tvl={tvl}

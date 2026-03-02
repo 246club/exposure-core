@@ -20,6 +20,7 @@ interface TreemapTileDatum extends Record<string, unknown> {
   childIds?: string[];
   childCount?: number;
   isTerminal?: boolean;
+  directLeavesCount?: number;
 }
 
 interface CustomContentProps extends Record<string, unknown> {
@@ -39,6 +40,7 @@ interface CustomContentProps extends Record<string, unknown> {
   lendingPosition?: "collateral" | "borrow";
   originalValue?: number;
   isTerminal?: boolean;
+  directLeavesCount?: number;
   name: string;
   value: number;
   percent: number;
@@ -54,6 +56,12 @@ interface CustomContentProps extends Record<string, unknown> {
   onPressStart: (nodeId: string) => void;
   onPressEnd: () => void;
   lastClick: { nodeId: string; seq: number } | null;
+
+  onHover?: (
+    datum: TreemapTileDatum,
+    point: { clientX: number; clientY: number },
+  ) => void;
+  onHoverEnd?: () => void;
 }
 
 const sanitizeSvgId = (value: string): string => {
@@ -110,6 +118,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     onPressStart,
     onPressEnd,
     lastClick,
+    onHover,
+    onHoverEnd,
   } = typed;
 
   const [isShaking, setIsShaking] = React.useState(false);
@@ -119,6 +129,11 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const fullNode = dataItem?.fullNode;
   const isOthers = dataItem?.isOthers;
   const isTerminal = !isOthers && !!dataItem?.isTerminal;
+  const directLeavesCount =
+    typeof dataItem?.directLeavesCount === "number" &&
+    Number.isFinite(dataItem.directLeavesCount)
+      ? Math.max(0, Math.floor(dataItem.directLeavesCount))
+      : null;
 
   if (!nodeId || (!fullNode && !isOthers)) return null;
 
@@ -146,6 +161,14 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const showTerminalBadge = isTerminal && width >= 80 && height >= 36;
   const showTerminalDot =
     isTerminal && !showTerminalBadge && width >= 42 && height >= 28;
+
+  const showLeavesCount =
+    !isOthers &&
+    !isTerminal &&
+    directLeavesCount !== null &&
+    directLeavesCount > 0 &&
+    width >= 90 &&
+    height >= 40;
 
   const logoPaths = fullNode ? getNodeLogos(fullNode) : [];
   const showLogos = logoPaths.length > 0 && width > 60 && height > 60;
@@ -274,7 +297,18 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
       onPointerDown={() => !isTerminal && onPressStart(String(nodeId))}
       onPointerUp={onPressEnd}
       onPointerCancel={onPressEnd}
-      onPointerLeave={onPressEnd}
+      onPointerLeave={() => {
+        onPressEnd();
+        onHoverEnd?.();
+      }}
+      onPointerMove={(e) => {
+        if (!onHover) return;
+        onHover(dataItem, { clientX: e.clientX, clientY: e.clientY });
+      }}
+      onPointerEnter={(e) => {
+        if (!onHover) return;
+        onHover(dataItem, { clientX: e.clientX, clientY: e.clientY });
+      }}
       onClick={handleActivate}
       onKeyDown={handleKeyDown}
       className={cn("exposure-tile", isShaking && "exposure-tile-shake")}
@@ -414,6 +448,35 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
             }}
             vectorEffect="non-scaling-stroke"
           />
+        )}
+
+        {showLeavesCount && (
+          <g pointerEvents="none">
+            <rect
+              x={x + width - 54}
+              y={y + 8}
+              width={46}
+              height={16}
+              rx={8}
+              style={{
+                fill: "rgba(0,0,0,0.03)",
+                stroke: "rgba(0,0,0,0.10)",
+                strokeWidth: 1,
+              }}
+              vectorEffect="non-scaling-stroke"
+            />
+            <text
+              x={x + width - 31}
+              y={y + 19}
+              textAnchor="middle"
+              fill="rgba(0,0,0,0.65)"
+              fontSize={9}
+              fontWeight={900}
+              style={{ fontFamily: monoFont, letterSpacing: "0.12em" }}
+            >
+              {directLeavesCount}
+            </text>
+          </g>
         )}
 
         {showLogos &&
