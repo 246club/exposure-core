@@ -71,13 +71,9 @@ const buildChainLabel = (
   return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
 };
 
-const getDropdownAssetKey = (id: string): string => {
-  const parts = id
-    .split(":")
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-  if (parts.length >= 3) return parts.slice(2).join(":").toLowerCase();
-  return id.trim().toLowerCase();
+const shouldGroupAcrossChains = (protocol: string): boolean => {
+  const value = protocol.trim().toLowerCase();
+  return value !== "morpho" && value !== "euler";
 };
 
 function HomeInner() {
@@ -310,9 +306,10 @@ function HomeInner() {
       const protocol = (entry.protocol ?? "").trim();
       const name = (entry.name ?? "").trim();
       const chain = (entry.chain ?? "global").trim().toLowerCase();
-      const assetKey = getDropdownAssetKey(entry.id);
-
-      const key = `${protocol.toLowerCase()}|${name.toLowerCase()}|${assetKey}`;
+      const baseKey = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
+      const key = shouldGroupAcrossChains(protocol)
+        ? baseKey
+        : `${baseKey}|${entry.id.trim().toLowerCase()}`;
 
       const tvlUsd = safeTvl(entry.tvlUsd);
 
