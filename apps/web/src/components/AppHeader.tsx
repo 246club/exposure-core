@@ -68,6 +68,7 @@ export function AppHeader({
 
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [snapshotTime, setSnapshotTime] = useState("");
 
   const hasActiveFilters =
     selectedProtocol !== "all" ||
@@ -85,6 +86,28 @@ export function AppHeader({
       setIsSearchDropdownOpen(true);
     }
   }, [query]);
+
+  useEffect(() => {
+    const now = new Date();
+    const hours = now.getUTCHours();
+    const lastSnapshotHour = Math.floor(hours / 12) * 12;
+    const lastSnapshot = new Date(now);
+    lastSnapshot.setUTCHours(lastSnapshotHour, 0, 0, 0);
+    setSnapshotTime(
+      lastSnapshot.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+        hour12: false,
+      }) + " UTC",
+    );
+  }, []);
+
+  useEffect(() => {
+    if (selectedCurator === "all") return;
+    if (curators.some((curator) => curator.value === selectedCurator)) return;
+    updateParams({ curator: "all" });
+  }, [curators, selectedCurator, updateParams]);
 
   // Click outside to close both dropdowns
   useEffect(() => {
@@ -106,8 +129,7 @@ export function AppHeader({
         filterDropdownRef.current &&
         !filterDropdownRef.current.contains(target)
       ) {
-        // Only close if it wasn't the trigger button (though button is inside the ref)
-        // Check if we clicked on something that shouldn't close it if needed
+        setIsFilterDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -438,21 +460,7 @@ export function AppHeader({
           <div className="flex items-center gap-1.5">
             <div className="w-1 h-1 rounded-full bg-amber-400" />
             <span className="text-[9px] font-bold uppercase tracking-tight text-black/60">
-              {(() => {
-                const now = new Date();
-                const hours = now.getUTCHours();
-                const lastSnapshotHour = Math.floor(hours / 12) * 12;
-                const lastSnapshot = new Date(now);
-                lastSnapshot.setUTCHours(lastSnapshotHour, 0, 0, 0);
-                return (
-                  lastSnapshot.toLocaleTimeString("en-GB", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "UTC",
-                    hour12: false,
-                  }) + " UTC"
-                );
-              })()}
+              {snapshotTime || "—"}
             </span>
           </div>
         </div>

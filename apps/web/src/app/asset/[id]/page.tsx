@@ -106,8 +106,8 @@ export default function AssetPage() {
         if (!Array.isArray(json)) return;
         setDynamicIndex(json);
         setGraphRootIds(new Set(json.map((e) => e.id.toLowerCase())));
-      } catch {
-        /* ignore */
+      } catch (error) {
+        console.error("Failed to load search index:", error);
       }
     };
     void load();

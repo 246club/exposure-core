@@ -16,7 +16,7 @@ export function useAssetData(props: UseAssetDataProps | null) {
   const searchParams = useSearchParams();
 
   const [graphData, setGraphData] = useState<GraphSnapshot | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [tvl, setTvl] = useState<number | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [focusRootNodeId, setFocusRootNodeId] = useState<string | null>(null);
