@@ -17,6 +17,7 @@ interface TreemapTileDatum extends Record<string, unknown> {
   lendingPosition?: "collateral" | "borrow";
   originalValue?: number;
   isOthers?: boolean;
+  isVault?: boolean;
   childIds?: string[];
   childCount?: number;
   isTerminal?: boolean;
@@ -41,6 +42,7 @@ interface CustomContentProps extends Record<string, unknown> {
   lendingPosition?: "collateral" | "borrow";
   originalValue?: number;
   isTerminal?: boolean;
+  isVault?: boolean;
   directLeavesCount?: number;
   name: string;
   value: number;
@@ -78,9 +80,9 @@ const ellipsizeToWidth = (
   const maxChars = Math.max(3, Math.floor(maxWidthPx / approxCharWidth));
 
   if (value.length <= maxChars) return value;
-  if (maxChars <= 3) return value.slice(0, 1) + "…";
+  if (maxChars <= 3) return "...";
 
-  return value.slice(0, maxChars - 1) + "…";
+  return value.slice(0, maxChars - 3) + "...";
 };
 
 const estimateTextWidthPx = (value: string, fontSizePx: number): number => {
@@ -181,6 +183,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const nodeId = dataItem?.nodeId;
   const fullNode = dataItem?.fullNode;
   const isOthers = dataItem?.isOthers;
+  const isVault = !!dataItem?.isVault;
   const isTerminal = !isOthers && !!dataItem?.isTerminal;
   const directLeavesCount =
     typeof dataItem?.directLeavesCount === "number" &&
@@ -211,19 +214,19 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const othersStroke = "#000000";
 
   const fill =
-    isOthers || hasAllocations
+    isOthers || isVault || hasAllocations
       ? othersFill
       : isTerminal
         ? terminalFill
         : "#E6EBF8";
   const stroke =
-    isOthers || hasAllocations
+    isOthers || isVault || hasAllocations
       ? othersStroke
       : isTerminal
         ? terminalStroke
         : "#000000";
   const textColor =
-    isOthers || hasAllocations
+    isOthers || isVault || hasAllocations
       ? "#000000"
       : isTerminal
         ? terminalTextColor
@@ -242,10 +245,16 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     directLeavesCount > 0 &&
     width >= 90 &&
     height >= 40 &&
-    !(hasAllocations && width > 150);
+    !((isVault || hasAllocations) && width > 150);
 
   const logoPaths = fullNode ? getNodeLogos(fullNode) : [];
   const showLogos = logoPaths.length > 0 && width > 60 && height > 60;
+
+  const headerHeight =
+    isOthers || hasAllocations || isVault
+      ? Math.min(36, Math.max(16, Math.floor(height * 0.3)))
+      : 0;
+  const headerCenterY = headerHeight ? y + headerHeight / 2 : y + 17;
 
   const protocolFallbackPath =
     fullNode?.protocol && hasProtocolLogo(fullNode.protocol)
@@ -322,33 +331,64 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   })();
 
   const baseTextX = showLogos ? x + 16 + logoPaths.length * 12 : x + 8;
-  const badgeGapPx = typeBadge ? 10 : 0;
+  const headerTextX = showLogos ? x + 8 + logoPaths.length * 12 + 20 : x + 8;
+  const badgeGapPx = typeBadge ? 6 : 0;
   const reservedRightPx = typeBadge ? badgeGapPx + typeBadge.widthPx : 0;
 
   const headerText = (() => {
-    if (!hasAllocations && !isOthers) return "";
+    if (!hasAllocations && !isOthers && !isVault) return "";
+
+    if (isVault && !hasAllocations) {
+      return `${name} ${currencyFormatter.format(originalValue)}`;
+    }
+
     const count =
       typeof dataItem.childCount === "number" && dataItem.childCount > 0
         ? dataItem.childCount
         : (allocations?.length ?? 0);
-    return `+${count} others ${currencyFormatter.format(originalValue)}`;
+
+    const suffix = `${currencyFormatter.format(originalValue)}`;
+
+    if (isOthers) return `${name} +${count} ${suffix}`;
+    return `${name} +${count} others ${suffix}`;
   })();
 
   const displayText = (() => {
-    if (hasAllocations || isOthers) return name;
+    if (hasAllocations || isOthers || isVault) return "";
     return `${name} ${currencyFormatter.format(originalValue)}`;
   })();
 
-  const safeText = (() => {
-    const maxTextWidthPx = Math.max(
-      0,
-      x + width - 8 - baseTextX - reservedRightPx,
-    );
-    return ellipsizeToWidth(displayText, maxTextWidthPx, fontSize);
-  })();
+  const headerDisplayText = headerText
+    ? ellipsizeToWidth(
+        headerText,
+        Math.max(0, width - (headerTextX - x) - 8),
+        fontSize,
+      )
+    : "";
+  const headerTextWidthPx = headerDisplayText
+    ? estimateTextWidthPx(headerDisplayText, fontSize)
+    : 0;
 
-  const safeTextWidthPx = estimateTextWidthPx(safeText, fontSize);
-  const badgeX = baseTextX + safeTextWidthPx + badgeGapPx;
+  const maxTextWidthPx = Math.max(
+    0,
+    width - (baseTextX - x) - 8 - reservedRightPx,
+  );
+
+  const safeText = ellipsizeToWidth(displayText, maxTextWidthPx, fontSize);
+
+  const safeTextWidthPx = Math.min(
+    estimateTextWidthPx(safeText, fontSize),
+    maxTextWidthPx,
+  );
+  const badgeX =
+    headerDisplayText && (isOthers || hasAllocations || isVault)
+      ? headerTextX + headerTextWidthPx + badgeGapPx
+      : baseTextX + safeTextWidthPx + badgeGapPx;
+  const badgeAvailablePx = Math.max(0, width - (badgeX - x) - 8);
+  const finalTypeBadge =
+    typeBadge && badgeAvailablePx >= typeBadge.widthPx ? typeBadge : null;
+  const badgeBaseY =
+    isOthers || hasAllocations || isVault ? headerCenterY : y + 21;
 
   const clickFlashActive = lastClick?.nodeId === nodeId;
 
@@ -357,18 +397,44 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   // - Top bar (header)
   // - Body area filled with smaller rectangles
   const renderAllocations = () => {
-    if (!hasAllocations) return null;
+    if (!hasAllocations && !isVault) return null;
     if (width < 90 || height < 90) return null;
 
     const HEADER_HEIGHT = 36;
     const MARGIN = 6;
     const INNER_GAP = 2;
+    const headerHeight = Math.min(
+      HEADER_HEIGHT,
+      Math.max(16, Math.floor(height * 0.3)),
+    );
+    const margin = Math.min(
+      MARGIN,
+      Math.max(2, Math.floor(Math.min(width, height) / 4)),
+    );
+
+    if (!hasAllocations && isVault) {
+      return (
+        <g>
+          <line
+            x1={x}
+            x2={x + width}
+            y1={y + headerHeight}
+            y2={y + headerHeight}
+            stroke="#000000"
+            strokeWidth={1}
+          />
+        </g>
+      );
+    }
 
     // Area available for inner rectangles
-    const availW = width - MARGIN * 2;
-    const availH = height - HEADER_HEIGHT - MARGIN * 2;
+    const availW = Math.max(0, width - margin * 2 - INNER_GAP * 2);
+    const availH = Math.max(
+      0,
+      height - headerHeight - margin * 2 - INNER_GAP * 2,
+    );
 
-    if (availW < 24 || availH < 24) return null;
+    if (availW < 24 || availH < 24 || !allocations) return null;
 
     const items = allocations
       .filter((item) => Number.isFinite(item.value) && item.value > 0)
@@ -381,8 +447,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     if (items.length === 0) return null;
 
     const layouts = squarify(
-      x + MARGIN,
-      y + HEADER_HEIGHT + INNER_GAP,
+      x + margin + INNER_GAP,
+      y + headerHeight + margin + INNER_GAP,
       availW,
       availH,
       items,
@@ -393,14 +459,14 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
         <line
           x1={x}
           x2={x + width}
-          y1={y + HEADER_HEIGHT}
-          y2={y + HEADER_HEIGHT}
+          y1={y + headerHeight}
+          y2={y + headerHeight}
           stroke="#000000"
           strokeWidth={1}
         />
         <rect
-          x={x + MARGIN}
-          y={y + HEADER_HEIGHT + INNER_GAP}
+          x={x + margin + INNER_GAP}
+          y={y + headerHeight + margin + INNER_GAP}
           width={availW}
           height={availH}
           style={{
@@ -675,7 +741,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
                 el.setAttribute("href", protocolFallbackPath);
               }}
               x={x + 8 + idx * 12}
-              y={y + 8}
+              y={headerCenterY - 9}
               height="18"
               width="18"
               preserveAspectRatio="xMidYMid meet"
@@ -685,62 +751,67 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
         {width > 40 && height > 20 && (
           <text
             x={baseTextX}
-            y={isOthers || hasAllocations ? y + 32 : y + 21}
+            y={
+              isOthers || hasAllocations || isVault
+                ? y + headerHeight + 14
+                : y + 21
+            }
             textAnchor="start"
             fill={textColor}
             fontSize={fontSize}
-            fontWeight={isOthers || hasAllocations ? 700 : 400}
+            fontWeight={isOthers || hasAllocations || isVault ? 700 : 400}
             style={{ fontFamily: monoFont }}
           >
             {safeText}
           </text>
         )}
 
-        {(isOthers || hasAllocations) && headerText && (
+        {(isOthers || hasAllocations || isVault) && headerText && (
           <text
-            x={x + 8}
-            y={y + 15}
+            x={headerTextX}
+            y={headerCenterY}
             textAnchor="start"
             fill={textColor}
             fontSize={fontSize}
             fontWeight={700}
+            dominantBaseline="middle"
             style={{ fontFamily: monoFont }}
           >
             {ellipsizeToWidth(headerText, width - 16, fontSize)}
           </text>
         )}
 
-        {typeBadge && width > 40 && height > 20 && (
+        {finalTypeBadge && width > 40 && height > 20 && (
           <g pointerEvents="none">
             <rect
               x={badgeX}
-              y={y + 21 - typeBadge.heightPx + 2}
-              width={typeBadge.widthPx}
-              height={typeBadge.heightPx}
-              rx={typeBadge.heightPx / 2}
-              ry={typeBadge.heightPx / 2}
+              y={badgeBaseY - finalTypeBadge.heightPx / 2}
+              width={finalTypeBadge.widthPx}
+              height={finalTypeBadge.heightPx}
+              rx={finalTypeBadge.heightPx / 2}
+              ry={finalTypeBadge.heightPx / 2}
               style={{
-                fill: typeBadge.colors.fill,
-                stroke: typeBadge.colors.stroke,
+                fill: finalTypeBadge.colors.fill,
+                stroke: finalTypeBadge.colors.stroke,
                 strokeWidth: 1,
               }}
               vectorEffect="non-scaling-stroke"
             />
             <text
-              x={badgeX + typeBadge.padX}
-              y={y + 21 - typeBadge.heightPx + 2 + typeBadge.heightPx / 2}
+              x={badgeX + finalTypeBadge.padX}
+              y={badgeBaseY}
               textAnchor="start"
               dominantBaseline="middle"
-              fill={typeBadge.colors.text}
-              fontSize={typeBadge.fontSizePx}
+              fill={finalTypeBadge.colors.text}
+              fontSize={finalTypeBadge.fontSizePx}
               fontWeight={900}
               style={{
                 fontFamily:
                   "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-                letterSpacing: `${typeBadge.letterSpacingEm}em`,
+                letterSpacing: `${finalTypeBadge.letterSpacingEm}em`,
               }}
             >
-              {typeBadge.text}
+              {finalTypeBadge.text}
             </text>
           </g>
         )}
