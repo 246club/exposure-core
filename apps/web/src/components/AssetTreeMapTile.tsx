@@ -257,6 +257,14 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
   const fontSize = 13;
   const horizontalPadding = 12;
+  const tileInset = Math.min(
+    4,
+    Math.max(1, Math.floor(Math.min(width, height) * 0.04)),
+  );
+  const innerX = x + tileInset;
+  const innerY = y + tileInset;
+  const innerWidth = Math.max(0, width - tileInset * 2);
+  const innerHeight = Math.max(0, height - tileInset * 2);
 
   const typeBadge = (() => {
     if (isOthers) return null;
@@ -321,9 +329,14 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     };
   })();
 
-  const baseTextX = showLogos ? x + 16 + logoPaths.length * 12 : x + 8;
-  const badgeGapPx = typeBadge ? 10 : 0;
-  const reservedRightPx = typeBadge ? badgeGapPx + typeBadge.widthPx : 0;
+  const headerPaddingX = 10;
+  const logoSize = 18;
+  const logoGap = 6;
+  const headerContentX = innerX + headerPaddingX;
+  const baseTextX = showLogos
+    ? headerContentX + logoSize + logoGap + (logoPaths.length - 1) * 12
+    : headerContentX;
+  const badgeGapPx = typeBadge ? 8 : 0;
 
   const headerText = (() => {
     if (!hasAllocations && !isOthers) return "";
@@ -335,20 +348,64 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   })();
 
   const displayText = (() => {
-    if (hasAllocations || isOthers) return name;
+    if (hasAllocations || isOthers) {
+      return `${headerText} ${name}`.trim();
+    }
     return `${name} ${currencyFormatter.format(originalValue)}`;
   })();
 
-  const safeText = (() => {
-    const maxTextWidthPx = Math.max(
-      0,
-      x + width - 8 - baseTextX - reservedRightPx,
+  const headerBarTop = innerY + 4;
+  const headerBarHeight = 24;
+  const headerLineY = headerBarTop + headerBarHeight / 2;
+  const labelLineY = headerLineY;
+
+  const labelLineMaxWidth = Math.max(
+    0,
+    innerX + innerWidth - headerPaddingX - baseTextX,
+  );
+
+  const safeTextWidthPx = estimateTextWidthPx(displayText, fontSize);
+  const badgeX = baseTextX + safeTextWidthPx + badgeGapPx;
+
+  const resolvedTypeBadge = (() => {
+    if (!typeBadge) return null;
+    const maxBadgeWidth = Math.max(0, innerX + innerWidth - 8 - badgeX);
+    if (maxBadgeWidth < 28) return null;
+
+    const availableTextWidth = Math.max(0, maxBadgeWidth - typeBadge.padX * 2);
+    const badgeText = ellipsizeToWidth(
+      typeBadge.text,
+      availableTextWidth,
+      typeBadge.fontSizePx,
     );
-    return ellipsizeToWidth(displayText, maxTextWidthPx, fontSize);
+    if (!badgeText) return null;
+
+    const widthPx = Math.min(typeBadge.widthPx, Math.max(28, maxBadgeWidth));
+
+    return {
+      ...typeBadge,
+      text: badgeText,
+      widthPx,
+    };
   })();
 
-  const safeTextWidthPx = estimateTextWidthPx(safeText, fontSize);
-  const badgeX = baseTextX + safeTextWidthPx + badgeGapPx;
+  const inlineBadgeFits = (() => {
+    if (!resolvedTypeBadge) return false;
+    const maxInlineWidth = Math.max(0, innerX + innerWidth - 8 - badgeX);
+    return maxInlineWidth >= resolvedTypeBadge.widthPx;
+  })();
+
+  const safeLabelText = (() => {
+    const reserved =
+      inlineBadgeFits && resolvedTypeBadge
+        ? resolvedTypeBadge.widthPx + badgeGapPx
+        : 0;
+    const maxTextWidth = Math.max(0, labelLineMaxWidth - reserved);
+    return ellipsizeToWidth(displayText, maxTextWidth, fontSize);
+  })();
+
+  const labelTextWidthPx = estimateTextWidthPx(safeLabelText, fontSize);
+  const labelBadgeX = baseTextX + labelTextWidthPx + badgeGapPx;
 
   const clickFlashActive = lastClick?.nodeId === nodeId;
 
@@ -358,15 +415,15 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   // - Body area filled with smaller rectangles
   const renderAllocations = () => {
     if (!hasAllocations) return null;
-    if (width < 90 || height < 90) return null;
+    if (innerWidth < 90 || innerHeight < 90) return null;
 
-    const HEADER_HEIGHT = 36;
+    const HEADER_HEIGHT = 28;
     const MARGIN = 6;
     const INNER_GAP = 2;
 
     // Area available for inner rectangles
-    const availW = width - MARGIN * 2;
-    const availH = height - HEADER_HEIGHT - MARGIN * 2;
+    const availW = innerWidth - MARGIN * 2;
+    const availH = innerHeight - HEADER_HEIGHT - MARGIN * 2;
 
     if (availW < 24 || availH < 24) return null;
 
@@ -381,8 +438,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     if (items.length === 0) return null;
 
     const layouts = squarify(
-      x + MARGIN,
-      y + HEADER_HEIGHT + INNER_GAP,
+      innerX + MARGIN,
+      innerY + HEADER_HEIGHT + INNER_GAP,
       availW,
       availH,
       items,
@@ -391,22 +448,21 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     return (
       <g>
         <line
-          x1={x}
-          x2={x + width}
-          y1={y + HEADER_HEIGHT}
-          y2={y + HEADER_HEIGHT}
+          x1={innerX}
+          x2={innerX + innerWidth}
+          y1={innerY + HEADER_HEIGHT}
+          y2={innerY + HEADER_HEIGHT}
           stroke="#000000"
           strokeWidth={1}
         />
         <rect
-          x={x + MARGIN}
-          y={y + HEADER_HEIGHT + INNER_GAP}
+          x={innerX + MARGIN}
+          y={innerY + HEADER_HEIGHT + INNER_GAP}
           width={availW}
           height={availH}
           style={{
             fill: "none",
-            stroke: "#000000",
-            strokeWidth: 1,
+            stroke: "none",
           }}
           pointerEvents="none"
         />
@@ -497,7 +553,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     >
       <defs>
         <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-          <rect x={x} y={y} width={width} height={height} />
+          <rect x={innerX} y={innerY} width={innerWidth} height={innerHeight} />
         </clipPath>
         {isTerminal && (
           <pattern
@@ -520,10 +576,10 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
       </defs>
 
       <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
+        x={innerX}
+        y={innerY}
+        width={innerWidth}
+        height={innerHeight}
         style={{
           fill,
           stroke,
@@ -541,10 +597,10 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
       {isTerminal && (
         <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
+          x={innerX}
+          y={innerY}
+          width={innerWidth}
+          height={innerHeight}
           style={{
             fill: `url(#${patternId})`,
             stroke: "none",
@@ -555,10 +611,10 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
       {isSelected && !isTerminal && (
         <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
+          x={innerX}
+          y={innerY}
+          width={innerWidth}
+          height={innerHeight}
           style={{
             fill: "rgba(0, 0, 0, 0.05)",
             stroke,
@@ -571,10 +627,10 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
       {clickFlashActive && !isTerminal && (
         <rect
           key={lastClick?.seq}
-          x={x}
-          y={y}
-          width={width}
-          height={height}
+          x={innerX}
+          y={innerY}
+          width={innerWidth}
+          height={innerHeight}
           className="exposure-tile-click"
           style={{
             fill: "rgba(0, 0, 0, 0.1)",
@@ -589,8 +645,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
         {showTerminalBadge && (
           <g>
             <rect
-              x={x + width - 40}
-              y={y + 8}
+              x={innerX + innerWidth - 40}
+              y={innerY + 8}
               width={32}
               height={14}
               rx={6}
@@ -601,8 +657,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
               vectorEffect="non-scaling-stroke"
             />
             <text
-              x={x + width - 24}
-              y={y + 18}
+              x={innerX + innerWidth - 24}
+              y={innerY + 18}
               textAnchor="middle"
               fill="#9F1239" // Rose 800
               fontSize={9}
@@ -616,8 +672,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
         {showTerminalDot && (
           <circle
-            cx={x + width - 12}
-            cy={y + 12}
+            cx={innerX + innerWidth - 12}
+            cy={innerY + 12}
             r={4}
             style={{
               fill: "#E11D48", // Rose 600
@@ -630,8 +686,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
         {showLeavesCount && (
           <g pointerEvents="none">
             <rect
-              x={x + width - 54}
-              y={y + 8}
+              x={innerX + innerWidth - 54}
+              y={innerY + 8}
               width={46}
               height={16}
               rx={8}
@@ -643,8 +699,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
               vectorEffect="non-scaling-stroke"
             />
             <text
-              x={x + width - 31}
-              y={y + 19}
+              x={innerX + innerWidth - 31}
+              y={innerY + 19}
               textAnchor="middle"
               fill="rgba(0,0,0,0.65)"
               fontSize={9}
@@ -674,8 +730,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
                 el.setAttribute("data-fallback-applied", "1");
                 el.setAttribute("href", protocolFallbackPath);
               }}
-              x={x + 8 + idx * 12}
-              y={y + 8}
+              x={headerContentX + idx * 12}
+              y={headerLineY - 9}
               height="18"
               width="18"
               preserveAspectRatio="xMidYMid meet"
@@ -685,62 +741,52 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
         {width > 40 && height > 20 && (
           <text
             x={baseTextX}
-            y={isOthers || hasAllocations ? y + 32 : y + 21}
+            y={labelLineY}
             textAnchor="start"
-            fill={textColor}
-            fontSize={fontSize}
-            fontWeight={isOthers || hasAllocations ? 700 : 400}
-            style={{ fontFamily: monoFont }}
-          >
-            {safeText}
-          </text>
-        )}
-
-        {(isOthers || hasAllocations) && headerText && (
-          <text
-            x={x + 8}
-            y={y + 15}
-            textAnchor="start"
+            dominantBaseline="middle"
             fill={textColor}
             fontSize={fontSize}
             fontWeight={700}
             style={{ fontFamily: monoFont }}
           >
-            {ellipsizeToWidth(headerText, width - 16, fontSize)}
+            {safeLabelText}
           </text>
         )}
 
-        {typeBadge && width > 40 && height > 20 && (
+        {resolvedTypeBadge && inlineBadgeFits && width > 40 && height > 20 && (
           <g pointerEvents="none">
             <rect
-              x={badgeX}
-              y={y + 21 - typeBadge.heightPx + 2}
-              width={typeBadge.widthPx}
-              height={typeBadge.heightPx}
-              rx={typeBadge.heightPx / 2}
-              ry={typeBadge.heightPx / 2}
+              x={labelBadgeX}
+              y={
+                headerBarTop +
+                (headerBarHeight - resolvedTypeBadge.heightPx) / 2
+              }
+              width={resolvedTypeBadge.widthPx}
+              height={resolvedTypeBadge.heightPx}
+              rx={resolvedTypeBadge.heightPx / 2}
+              ry={resolvedTypeBadge.heightPx / 2}
               style={{
-                fill: typeBadge.colors.fill,
-                stroke: typeBadge.colors.stroke,
+                fill: resolvedTypeBadge.colors.fill,
+                stroke: resolvedTypeBadge.colors.stroke,
                 strokeWidth: 1,
               }}
               vectorEffect="non-scaling-stroke"
             />
             <text
-              x={badgeX + typeBadge.padX}
-              y={y + 21 - typeBadge.heightPx + 2 + typeBadge.heightPx / 2}
+              x={labelBadgeX + resolvedTypeBadge.padX}
+              y={headerLineY}
               textAnchor="start"
               dominantBaseline="middle"
-              fill={typeBadge.colors.text}
-              fontSize={typeBadge.fontSizePx}
+              fill={resolvedTypeBadge.colors.text}
+              fontSize={resolvedTypeBadge.fontSizePx}
               fontWeight={900}
               style={{
                 fontFamily:
                   "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
-                letterSpacing: `${typeBadge.letterSpacingEm}em`,
+                letterSpacing: `${resolvedTypeBadge.letterSpacingEm}em`,
               }}
             >
-              {typeBadge.text}
+              {resolvedTypeBadge.text}
             </text>
           </g>
         )}
