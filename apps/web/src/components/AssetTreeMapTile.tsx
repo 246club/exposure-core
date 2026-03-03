@@ -428,8 +428,11 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     }
 
     // Area available for inner rectangles
-    const availW = Math.max(0, width - margin * 2);
-    const availH = Math.max(0, height - headerHeight - margin * 2);
+    const availW = Math.max(0, width - margin * 2 - INNER_GAP * 2);
+    const availH = Math.max(
+      0,
+      height - headerHeight - margin * 2 - INNER_GAP * 2,
+    );
 
     if (availW < 24 || availH < 24 || !allocations) return null;
 
@@ -444,8 +447,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     if (items.length === 0) return null;
 
     const layouts = squarify(
-      x + margin,
-      y + headerHeight + INNER_GAP,
+      x + margin + INNER_GAP,
+      y + headerHeight + margin + INNER_GAP,
       availW,
       availH,
       items,
@@ -462,8 +465,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           strokeWidth={1}
         />
         <rect
-          x={x + margin}
-          y={y + headerHeight + INNER_GAP}
+          x={x + margin + INNER_GAP}
+          y={y + headerHeight + margin + INNER_GAP}
           width={availW}
           height={availH}
           style={{
