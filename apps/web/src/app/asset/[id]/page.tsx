@@ -46,16 +46,24 @@ export default function AssetPage() {
     pageTitle,
     applyLocalDrilldown,
     handleBackOneStep,
+    resetToRoot,
+    jumpToFocus,
     isAtAssetRoot,
     rootNode,
     isOthersView,
     setIsOthersView,
     othersChildrenIds,
     setOthersChildrenIds,
+    focusStack,
   } = useAssetData({ id, chain, protocol, focus });
 
   const { terminalToast, showTerminalToast, closeTerminalToast } =
     useTerminalToast();
+
+  const nodesById = useMemo(() => {
+    if (!graphData) return new Map<string, GraphNode>();
+    return new Map(graphData.nodes.map((n) => [n.id, n]));
+  }, [graphData]);
 
   const tileClickSeq = useRef(0);
   const lastTileClick = useRef<{ nodeId: string; seq: number } | null>(null);
@@ -171,15 +179,72 @@ export default function AssetPage() {
 
   const breadcrumbs = useMemo(() => {
     const items = [];
+
+    // 1. Origin link (if any)
     if (origin && origin !== id) {
       items.push({
         label: origin.toUpperCase(),
         href: `/asset/${encodeURIComponent(origin)}`,
       });
     }
-    items.push({ label: pageTitle.toUpperCase(), current: true });
+
+    // 2. Root of current graph
+    if (rootNode) {
+      items.push({
+        label: rootNode.name.toUpperCase(),
+        href: isAtAssetRoot ? undefined : "#",
+        onClick: isAtAssetRoot ? undefined : () => resetToRoot(),
+      });
+    }
+
+    // 3. Path from root to parent of current focus
+    if (graphData && focusStack && focusStack.length > 0) {
+      focusStack.forEach((nodeId) => {
+        // Skip root if already added
+        if (rootNode && nodeId === rootNode.id) return;
+
+        const node = nodesById.get(nodeId);
+        if (node) {
+          items.push({
+            label: node.name.toUpperCase(),
+            href: "#",
+            onClick: () => {
+              jumpToFocus(node.id);
+            },
+          });
+        }
+      });
+    }
+
+    // 4. Current focus node (if not already root)
+    if (
+      !isAtAssetRoot &&
+      selectedNode &&
+      selectedNode.id !== rootNode?.id &&
+      !isOthersView
+    ) {
+      items.push({ label: selectedNode.name.toUpperCase(), current: true });
+    }
+
+    // 5. Others view suffix
+    if (isOthersView) {
+      items.push({ label: "OTHERS", current: true });
+    }
+
     return items;
-  }, [origin, id, pageTitle]);
+  }, [
+    origin,
+    id,
+    rootNode,
+    graphData,
+    focusStack,
+    selectedNode,
+    isAtAssetRoot,
+    isOthersView,
+    resetToRoot,
+    jumpToFocus,
+    nodesById,
+  ]);
 
   const chainLogoPath = hasChainLogo(chain) ? getChainLogoPath(chain) : null;
   const activeNodeType = getNodeTypeParts((selectedNode ?? rootNode)?.details);
@@ -198,7 +263,7 @@ export default function AssetPage() {
       case "lending":
         return `${base} bg-blue-50 border-blue-200 text-blue-700`;
       case "staked-locked":
-        return `${base} bg-amber-50 border-amber-200 text-amber-700`;
+        return `${base} bg-amber-50 border-emerald-200 text-amber-700`;
       default:
         return `${base} bg-black/[0.02] border-black/10 text-black/60`;
     }
@@ -262,7 +327,14 @@ export default function AssetPage() {
                   {idx > 0 && (
                     <ChevronRight className="w-3 h-3 text-black/20" />
                   )}
-                  {crumb.href ? (
+                  {crumb.onClick ? (
+                    <button
+                      onClick={crumb.onClick}
+                      className="text-[9px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
+                    >
+                      {crumb.label}
+                    </button>
+                  ) : crumb.href ? (
                     <Link
                       href={crumb.href}
                       className="text-[9px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
@@ -319,30 +391,32 @@ export default function AssetPage() {
       </header>
 
       {/* Primary Layout */}
-      <main className="flex-grow flex flex-col lg:flex-row">
+      <main className="flex-grow flex flex-col lg:flex-row min-h-0">
         {/* Visualization Region */}
-        <div className="flex-grow h-[65vh] lg:h-auto lg:w-2/3 relative bg-[#E6EBF8] overflow-hidden border-r border-black">
-          <div className="absolute top-10 left-10 z-20 pointer-events-none">
-            <div className="px-5 py-2.5 bg-white border border-black text-[9px] font-black text-black uppercase tracking-[0.3em] shadow-xl">
-              Open Interest Distribution // Active_Stream
+        <div className="flex-grow h-[65vh] lg:h-auto lg:w-2/3 relative bg-white overflow-hidden border-r border-black border-b border-black box-border pb-6">
+          <div className="absolute inset-0 bottom-6 bg-[#E6EBF8] border border-black box-border">
+            <div className="absolute top-10 left-10 z-20 pointer-events-none">
+              <div className="px-5 py-2.5 bg-white border border-black text-[9px] font-black text-black uppercase tracking-[0.3em] shadow-xl">
+                Open Interest Distribution // Active_Stream
+              </div>
             </div>
-          </div>
 
-          <AssetTreeMap
-            data={graphData}
-            rootNodeId={focusRootNodeId || rootNode?.id}
-            graphRootIds={graphRootIds}
-            onSelect={handleDrilldownSelect}
-            onSelectOthers={handleSelectOthers}
-            isOthersView={isOthersView}
-            othersChildrenIds={othersChildrenIds}
-            selectedNodeId={selectedNode?.id}
-            lastClick={lastTileClick.current}
-          />
+            <AssetTreeMap
+              data={graphData}
+              rootNodeId={focusRootNodeId || rootNode?.id}
+              graphRootIds={graphRootIds}
+              onSelect={handleDrilldownSelect}
+              onSelectOthers={handleSelectOthers}
+              isOthersView={isOthersView}
+              othersChildrenIds={othersChildrenIds}
+              selectedNodeId={selectedNode?.id}
+              lastClick={lastTileClick.current}
+            />
+          </div>
         </div>
 
         {/* Intelligence Region */}
-        <aside className="lg:w-[450px] bg-white flex flex-col z-20 shadow-[-20px_0_60px_rgba(0,0,0,0.05)]">
+        <aside className="lg:w-[450px] bg-white flex flex-col z-20 shadow-[-20px_0_60px_rgba(0,0,0,0.05)] min-h-0 border-b border-black">
           <AssetDetailPanel
             selectedNode={selectedNode}
             edges={graphData.edges}
