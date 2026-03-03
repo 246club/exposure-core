@@ -54,6 +54,9 @@ export default function AssetTreeMap({
     w: number;
     h: number;
   } | null>(null);
+  const [allocationsByNodeId, setAllocationsByNodeId] = useState<
+    Map<string, { id: string; name: string; value: number }[]>
+  >(new Map());
 
   useEffect(() => {
     setHoverState(null);
@@ -195,8 +198,24 @@ export default function AssetTreeMap({
 
       const isTerminal = isLeafInSnapshot && !hasDownstreamGraph;
 
-      const directLeavesCount = (edgesByFrom.get(normalizeId(c.id)) ?? [])
-        .length;
+      const outgoingEdges = edgesByFrom.get(normalizeId(c.id)) ?? [];
+      const directLeavesCount = outgoingEdges.length;
+
+      // Map allocations for mini-treemap within the tile
+      const localAllocations = outgoingEdges
+        .map((e) => {
+          const toNode = nodesById.get(normalizeId(e.to));
+          return {
+            id: e.to,
+            name: toNode?.name ?? e.to,
+            value: Math.abs(e.allocationUsd),
+          };
+        })
+        .sort((a, b) => b.value - a.value);
+
+      const fallbackKey = normalizeId(c.id);
+      const allocations =
+        allocationsByNodeId.get(fallbackKey) ?? localAllocations;
 
       const typeLabel = c.node ? getNodeTypeLabel(c.node.details) : "";
 
@@ -225,6 +244,7 @@ export default function AssetTreeMap({
         isTerminal,
         typeLabel,
         directLeavesCount,
+        allocations,
       };
     });
 
@@ -275,6 +295,11 @@ export default function AssetTreeMap({
           childIds: minor.map((c) => c.nodeId),
           childCount: minor.length,
           directLeavesCount: minor.length,
+          allocations: minor.map((m) => ({
+            id: m.nodeId,
+            name: m.name,
+            value: m.value,
+          })),
         },
       ];
     }
@@ -288,7 +313,91 @@ export default function AssetTreeMap({
     containerSize,
     graphRootIds,
     graphIndex,
+    allocationsByNodeId,
   ]);
+
+  useEffect(() => {
+    if (!data || !rootNodeId) return;
+
+    const root = data.nodes.find((n) => n.id === rootNodeId);
+    if (!root) return;
+
+    let children = getDirectChildren(root, data.nodes, data.edges);
+    if (isOthersView && othersChildrenIds) {
+      const scope = new Set(
+        othersChildrenIds.map((id) => id.trim().toLowerCase()),
+      );
+      children = children.filter((c) => scope.has(c.id.trim().toLowerCase()));
+    }
+
+    const candidateIds = children.map((c) => normalizeId(c.id));
+    const missingIds = candidateIds.filter(
+      (id) => !allocationsByNodeId.has(id),
+    );
+    if (missingIds.length === 0) return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      const updates = new Map<
+        string,
+        { id: string; name: string; value: number }[]
+      >();
+      const limitedIds = missingIds.slice(0, 50);
+
+      await Promise.all(
+        limitedIds.map(async (id) => {
+          try {
+            const res = await fetch(`/api/graph/${encodeURIComponent(id)}`);
+            if (!res.ok) return;
+            const json = (await res.json()) as unknown;
+            if (!json || typeof json !== "object") return;
+            const snapshot = json as GraphSnapshot;
+            if (
+              !Array.isArray(snapshot.nodes) ||
+              !Array.isArray(snapshot.edges)
+            )
+              return;
+
+            const nodesById = new Map(
+              snapshot.nodes.map((n) => [normalizeId(n.id), n] as const),
+            );
+            const allocations = snapshot.edges
+              .filter((e) => normalizeId(e.from) === id)
+              .map((e) => {
+                const node = nodesById.get(normalizeId(e.to));
+                return {
+                  id: e.to,
+                  name: node?.name ?? e.to,
+                  value: Math.abs(e.allocationUsd),
+                };
+              })
+              .filter((e) => Number.isFinite(e.value) && e.value > 0)
+              .sort((a, b) => b.value - a.value);
+
+            if (allocations.length > 0) updates.set(id, allocations);
+          } catch {
+            // ignore
+          }
+        }),
+      );
+
+      if (cancelled || updates.size === 0) return;
+      setAllocationsByNodeId((prev) => {
+        const next = new Map(prev);
+        updates.forEach((allocs, id) => {
+          next.set(id, allocs);
+        });
+        return next;
+      });
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, rootNodeId, isOthersView, othersChildrenIds, allocationsByNodeId]);
 
   if (!data || chartData.length === 0) {
     return (

@@ -21,6 +21,7 @@ interface TreemapTileDatum extends Record<string, unknown> {
   childCount?: number;
   isTerminal?: boolean;
   directLeavesCount?: number;
+  allocations?: { id: string; name: string; value: number }[];
 }
 
 interface CustomContentProps extends Record<string, unknown> {
@@ -101,6 +102,58 @@ const estimateBadgeTextWidthPx = (
   return Math.ceil(base + spacing);
 };
 
+// Squarify helper for mini-treemap layout
+function squarify(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  items: { value: number; name: string; id: string }[],
+): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name: string;
+  id: string;
+}[] {
+  if (items.length === 0) return [];
+  if (items.length === 1)
+    return [{ x, y, width, height, name: items[0].name, id: items[0].id }];
+
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  let bestSplit = 1;
+  let minDiff = Infinity;
+  let sumLeft = 0;
+
+  for (let i = 0; i < items.length - 1; i++) {
+    sumLeft += items[i].value;
+    const diff = Math.abs(sumLeft / total - 0.5);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestSplit = i + 1;
+    }
+  }
+
+  const leftItems = items.slice(0, bestSplit);
+  const rightItems = items.slice(bestSplit);
+  const ratio = leftItems.reduce((sum, item) => sum + item.value, 0) / total;
+
+  if (width > height) {
+    const leftWidth = width * ratio;
+    return [
+      ...squarify(x, y, leftWidth, height, leftItems),
+      ...squarify(x + leftWidth, y, width - leftWidth, height, rightItems),
+    ];
+  } else {
+    const leftHeight = height * ratio;
+    return [
+      ...squarify(x, y, width, leftHeight, leftItems),
+      ...squarify(x, y + leftHeight, width, height - leftHeight, rightItems),
+    ];
+  }
+}
+
 export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const typed = props as CustomContentProps;
   const {
@@ -135,6 +188,11 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
       ? Math.max(0, Math.floor(dataItem.directLeavesCount))
       : null;
 
+  const allocations = Array.isArray(dataItem?.allocations)
+    ? (dataItem.allocations as TreemapTileDatum["allocations"])
+    : null;
+  const hasAllocations = !!allocations && allocations.length > 0;
+
   if (!nodeId || (!fullNode && !isOthers)) return null;
 
   const isSelected = selectedNodeId === nodeId;
@@ -148,13 +206,28 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const terminalStroke = "rgba(225, 29, 72, 0.2)"; // Rose 600 with alpha
   const terminalTextColor = "#9F1239"; // Rose 800
 
-  const fill = isOthers ? "#000000" : isTerminal ? terminalFill : "#E6EBF8";
-  const stroke = isOthers ? "#00FF85" : isTerminal ? terminalStroke : "#000000";
-  const textColor = isOthers
-    ? "#00FF85"
-    : isTerminal
-      ? terminalTextColor
-      : "#000000";
+  // "Others" tile specific style (beige/light gray background)
+  const othersFill = "#EAE5D9"; // Beige-ish gray from Image 1 / detailnodestyle.png
+  const othersStroke = "#000000";
+
+  const fill =
+    isOthers || hasAllocations
+      ? othersFill
+      : isTerminal
+        ? terminalFill
+        : "#E6EBF8";
+  const stroke =
+    isOthers || hasAllocations
+      ? othersStroke
+      : isTerminal
+        ? terminalStroke
+        : "#000000";
+  const textColor =
+    isOthers || hasAllocations
+      ? "#000000"
+      : isTerminal
+        ? terminalTextColor
+        : "#000000";
   const monoFont = "'JetBrains Mono', monospace";
 
   const strokeDasharray = isTerminal ? "4 3" : undefined;
@@ -168,7 +241,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     directLeavesCount !== null &&
     directLeavesCount > 0 &&
     width >= 90 &&
-    height >= 40;
+    height >= 40 &&
+    !(hasAllocations && width > 150);
 
   const logoPaths = fullNode ? getNodeLogos(fullNode) : [];
   const showLogos = logoPaths.length > 0 && width > 60 && height > 60;
@@ -251,11 +325,17 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const badgeGapPx = typeBadge ? 10 : 0;
   const reservedRightPx = typeBadge ? badgeGapPx + typeBadge.widthPx : 0;
 
-  const displayText = (() => {
-    if (isOthers) {
-      return `${name} (${dataItem.childCount}) ${currencyFormatter.format(originalValue)}`;
-    }
+  const headerText = (() => {
+    if (!hasAllocations && !isOthers) return "";
+    const count =
+      typeof dataItem.childCount === "number" && dataItem.childCount > 0
+        ? dataItem.childCount
+        : (allocations?.length ?? 0);
+    return `+${count} others ${currencyFormatter.format(originalValue)}`;
+  })();
 
+  const displayText = (() => {
+    if (hasAllocations || isOthers) return name;
     return `${name} ${currencyFormatter.format(originalValue)}`;
   })();
 
@@ -271,6 +351,103 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   const badgeX = baseTextX + safeTextWidthPx + badgeGapPx;
 
   const clickFlashActive = lastClick?.nodeId === nodeId;
+
+  // Mini-treemap rendering logic (Squarify)
+  // For "Others":
+  // - Top bar (header)
+  // - Body area filled with smaller rectangles
+  const renderAllocations = () => {
+    if (!hasAllocations) return null;
+    if (width < 90 || height < 90) return null;
+
+    const HEADER_HEIGHT = 36;
+    const MARGIN = 6;
+    const INNER_GAP = 2;
+
+    // Area available for inner rectangles
+    const availW = width - MARGIN * 2;
+    const availH = height - HEADER_HEIGHT - MARGIN * 2;
+
+    if (availW < 24 || availH < 24) return null;
+
+    const items = allocations
+      .filter((item) => Number.isFinite(item.value) && item.value > 0)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        value: item.value,
+      }));
+
+    if (items.length === 0) return null;
+
+    const layouts = squarify(
+      x + MARGIN,
+      y + HEADER_HEIGHT + INNER_GAP,
+      availW,
+      availH,
+      items,
+    );
+
+    return (
+      <g>
+        <line
+          x1={x}
+          x2={x + width}
+          y1={y + HEADER_HEIGHT}
+          y2={y + HEADER_HEIGHT}
+          stroke="#000000"
+          strokeWidth={1}
+        />
+        <rect
+          x={x + MARGIN}
+          y={y + HEADER_HEIGHT + INNER_GAP}
+          width={availW}
+          height={availH}
+          style={{
+            fill: "none",
+            stroke: "#000000",
+            strokeWidth: 1,
+          }}
+          pointerEvents="none"
+        />
+
+        {layouts.map((layout) => {
+          if (layout.width < 1 || layout.height < 1) return null;
+
+          return (
+            <React.Fragment key={layout.id}>
+              <rect
+                x={layout.x}
+                y={layout.y}
+                width={layout.width}
+                height={layout.height}
+                style={{
+                  fill: "#E6EBF8",
+                  stroke: "#000000",
+                  strokeWidth: 0.5,
+                }}
+              />
+              {layout.width > 30 && layout.height > 12 && (
+                <text
+                  x={layout.x + 2}
+                  y={layout.y + 10}
+                  fontSize={layout.width > 50 ? 8 : 7}
+                  fill="rgba(0,0,0,0.8)"
+                  style={{ fontFamily: monoFont }}
+                >
+                  {ellipsizeToWidth(
+                    layout.name.toUpperCase(),
+                    layout.width - 4,
+                    8,
+                  )}
+                </text>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </g>
+    );
+  };
 
   const handleActivate = () => {
     if (isTerminal) {
@@ -508,14 +685,28 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
         {width > 40 && height > 20 && (
           <text
             x={baseTextX}
-            y={y + 21}
+            y={isOthers || hasAllocations ? y + 32 : y + 21}
             textAnchor="start"
             fill={textColor}
             fontSize={fontSize}
-            fontWeight={400}
+            fontWeight={isOthers || hasAllocations ? 700 : 400}
             style={{ fontFamily: monoFont }}
           >
             {safeText}
+          </text>
+        )}
+
+        {(isOthers || hasAllocations) && headerText && (
+          <text
+            x={x + 8}
+            y={y + 15}
+            textAnchor="start"
+            fill={textColor}
+            fontSize={fontSize}
+            fontWeight={700}
+            style={{ fontFamily: monoFont }}
+          >
+            {ellipsizeToWidth(headerText, width - 16, fontSize)}
           </text>
         )}
 
@@ -553,6 +744,8 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
             </text>
           </g>
         )}
+
+        {renderAllocations()}
       </g>
     </g>
   );

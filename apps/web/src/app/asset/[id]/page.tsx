@@ -52,6 +52,7 @@ export default function AssetPage() {
     setIsOthersView,
     othersChildrenIds,
     setOthersChildrenIds,
+    focusStack,
   } = useAssetData({ id, chain, protocol, focus });
 
   const { terminalToast, showTerminalToast, closeTerminalToast } =
@@ -171,15 +172,83 @@ export default function AssetPage() {
 
   const breadcrumbs = useMemo(() => {
     const items = [];
+
+    // 1. Origin link (if any)
     if (origin && origin !== id) {
       items.push({
         label: origin.toUpperCase(),
         href: `/asset/${encodeURIComponent(origin)}`,
       });
     }
-    items.push({ label: pageTitle.toUpperCase(), current: true });
+
+    // 2. Root of current graph
+    if (rootNode) {
+      items.push({
+        label: rootNode.name.toUpperCase(),
+        href: isAtAssetRoot ? undefined : "#",
+        onClick: isAtAssetRoot
+          ? undefined
+          : () => {
+              // Reset to root
+              if (handleBackOneStep) {
+                // Simplification: go back once to demonstrate.
+                handleBackOneStep();
+              }
+            },
+      });
+    }
+
+    // 3. Path from root to parent of current focus
+    if (graphData && focusStack && focusStack.length > 0) {
+      const nodesById = new Map(graphData.nodes.map((n) => [n.id, n]));
+      focusStack.forEach((nodeId, idx) => {
+        // Skip root if already added
+        if (rootNode && nodeId === rootNode.id) return;
+
+        const node = nodesById.get(nodeId);
+        if (node) {
+          items.push({
+            label: node.name.toUpperCase(),
+            href: "#",
+            onClick: () => {
+              // Go back until this node is the focus
+              const stepsBack = focusStack.length - idx;
+              for (let i = 0; i < stepsBack; i++) {
+                handleBackOneStep();
+              }
+            },
+          });
+        }
+      });
+    }
+
+    // 4. Current focus node (if not already root)
+    if (
+      !isAtAssetRoot &&
+      selectedNode &&
+      selectedNode.id !== rootNode?.id &&
+      !isOthersView
+    ) {
+      items.push({ label: selectedNode.name.toUpperCase(), current: true });
+    }
+
+    // 5. Others view suffix
+    if (isOthersView) {
+      items.push({ label: "OTHERS", current: true });
+    }
+
     return items;
-  }, [origin, id, pageTitle]);
+  }, [
+    origin,
+    id,
+    rootNode,
+    graphData,
+    focusStack,
+    selectedNode,
+    isAtAssetRoot,
+    isOthersView,
+    handleBackOneStep,
+  ]);
 
   const chainLogoPath = hasChainLogo(chain) ? getChainLogoPath(chain) : null;
   const activeNodeType = getNodeTypeParts((selectedNode ?? rootNode)?.details);
@@ -198,7 +267,7 @@ export default function AssetPage() {
       case "lending":
         return `${base} bg-blue-50 border-blue-200 text-blue-700`;
       case "staked-locked":
-        return `${base} bg-amber-50 border-amber-200 text-amber-700`;
+        return `${base} bg-amber-50 border-emerald-200 text-amber-700`;
       default:
         return `${base} bg-black/[0.02] border-black/10 text-black/60`;
     }
@@ -262,7 +331,14 @@ export default function AssetPage() {
                   {idx > 0 && (
                     <ChevronRight className="w-3 h-3 text-black/20" />
                   )}
-                  {crumb.href ? (
+                  {crumb.onClick ? (
+                    <button
+                      onClick={crumb.onClick}
+                      className="text-[9px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
+                    >
+                      {crumb.label}
+                    </button>
+                  ) : crumb.href ? (
                     <Link
                       href={crumb.href}
                       className="text-[9px] font-black text-black/40 hover:text-black uppercase tracking-[0.2em] transition-colors"
