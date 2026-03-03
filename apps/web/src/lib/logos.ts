@@ -142,6 +142,11 @@ export function getNodeLogos(
   }
 
   const name = node.name.trim();
+  const lowerName = name.toLowerCase();
+
+  if (lowerName === "mf-one") {
+    return [getAssetLogoPath(lowerName)];
+  }
 
   const isTokenLike = (value: string): boolean => {
     const v = value.trim();
