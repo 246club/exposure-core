@@ -7,7 +7,7 @@ import { Loader2, Activity, ChevronRight, RotateCcw } from "lucide-react";
 
 import AssetTreeMap from "@/components/AssetTreeMap";
 import { TerminalToast } from "@/components/TerminalToast";
-import { FloatingNodeInfo } from "@/components/FloatingNodeInfo";
+import { RootNodeHeader } from "@/components/RootNodeHeader";
 import { AppHeader } from "@/components/AppHeader";
 
 import { useAssetData } from "@/hooks/useAssetData";
@@ -550,8 +550,21 @@ export default function AssetPage() {
       </div>
 
       <main className="flex-grow flex flex-col min-h-0 px-6 md:px-24 lg:px-40 py-12">
-        <div className="flex-grow relative bg-white overflow-hidden border border-black shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-          <div className="absolute inset-0 bg-[#E6EBF8]">
+        <div className="flex-grow relative bg-[#EAE5D9] overflow-hidden border border-black shadow-2xl flex flex-col p-3 gap-2">
+          {(() => {
+            const infoNode = selectedNode ?? rootNode;
+            if (!infoNode) return null;
+            return (
+              <RootNodeHeader
+                node={infoNode}
+                tvl={tvl}
+                onBack={
+                  !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
+                }
+              />
+            );
+          })()}
+          <div className="flex-grow relative bg-[#E6EBF8] border border-black overflow-hidden">
             <AssetTreeMap
               data={graphData}
               rootNodeId={focusRootNodeId || rootNode?.id}
@@ -563,22 +576,6 @@ export default function AssetPage() {
               selectedNodeId={selectedNode?.id}
               lastClick={lastTileClick.current}
             />
-
-            {(() => {
-              const infoNode = selectedNode ?? rootNode;
-              if (!infoNode) return null;
-              return (
-                <FloatingNodeInfo
-                  node={infoNode}
-                  tvl={tvl}
-                  onBack={
-                    !isAtAssetRoot || isOthersView
-                      ? handleBackOneStep
-                      : undefined
-                  }
-                />
-              );
-            })()}
           </div>
         </div>
       </main>

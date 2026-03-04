@@ -6,7 +6,6 @@ import {
   getProtocolLogoPath,
   hasProtocolLogo,
 } from "@/lib/logos";
-import { cn } from "@/lib/utils";
 import { currencyFormatter } from "@/utils/formatters";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 
@@ -55,7 +54,6 @@ interface CustomContentProps extends Record<string, unknown> {
   ) => void | Promise<void>;
   onSelectOthers?: (childIds: string[]) => void;
   selectedNodeId?: string | null;
-  pressedNodeId: string | null;
   onPressStart: (nodeId: string) => void;
   onPressEnd: () => void;
   lastClick: { nodeId: string; seq: number } | null;
@@ -169,15 +167,12 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
     onSelect,
     onSelectOthers,
     selectedNodeId,
-    pressedNodeId,
     onPressStart,
     onPressEnd,
     lastClick,
     onHover,
     onHoverEnd,
   } = typed;
-
-  const [isShaking, setIsShaking] = React.useState(false);
 
   const dataItem = payload || typed;
   const nodeId = dataItem?.nodeId;
@@ -199,7 +194,6 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   if (!nodeId || (!fullNode && !isOthers)) return null;
 
   const isSelected = selectedNodeId === nodeId;
-  const isPressed = pressedNodeId === nodeId;
   const originalValue = dataItem.originalValue ?? value;
   const typeLabel =
     typeof dataItem?.typeLabel === "string" ? dataItem.typeLabel.trim() : "";
@@ -516,11 +510,6 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
   };
 
   const handleActivate = () => {
-    if (isTerminal) {
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 400);
-    }
-
     const childIds = dataItem.childIds;
     if (isOthers && onSelectOthers && Array.isArray(childIds)) {
       onSelectOthers(childIds);
@@ -554,7 +543,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
       }}
       onClick={handleActivate}
       onKeyDown={handleKeyDown}
-      className={cn("exposure-tile", isShaking && "exposure-tile-shake")}
+      className="exposure-tile"
       role="button"
       tabIndex={0}
       aria-label={String(name)}
@@ -598,11 +587,7 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           strokeLinecap: "round",
           opacity: 1,
         }}
-        className={
-          isPressed && !isTerminal
-            ? "exposure-tile-rect exposure-tile-rect--pressed"
-            : "exposure-tile-rect"
-        }
+        className="exposure-tile-rect"
       />
 
       {isTerminal && (
@@ -636,12 +621,10 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
 
       {clickFlashActive && !isTerminal && (
         <rect
-          key={lastClick?.seq}
           x={x}
           y={y}
           width={width}
           height={height}
-          className="exposure-tile-click"
           style={{
             fill: "rgba(0, 0, 0, 0.1)",
             stroke,
