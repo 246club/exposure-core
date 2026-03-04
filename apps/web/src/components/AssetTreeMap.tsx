@@ -425,7 +425,7 @@ export default function AssetTreeMap({
         key={`${rootNodeId ?? ""}|${isOthersView ? "others" : "main"}|${
           Array.isArray(othersChildrenIds) ? othersChildrenIds.length : 0
         }`}
-        className="w-full h-full exposure-treemap-enter"
+        className="w-full h-full"
       >
         <ResponsiveContainer width="100%" height="100%">
           <Treemap

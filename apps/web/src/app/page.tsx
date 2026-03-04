@@ -6,7 +6,7 @@ import { type SearchIndexEntry } from "@/constants";
 import { useSearchParams, useRouter } from "next/navigation";
 import AssetTreeMap from "@/components/AssetTreeMap";
 import { useAssetData } from "@/hooks/useAssetData";
-import { FloatingNodeInfo } from "@/components/FloatingNodeInfo";
+import { RootNodeHeader } from "@/components/RootNodeHeader";
 import { AppHeader } from "@/components/AppHeader";
 
 const shortChainLabel = (value: string): string => {
@@ -126,40 +126,10 @@ function UniversalTreemapView({
   const infoNode = selectedNode ?? rootNode;
 
   return (
-    <div className="w-full border border-black bg-white shadow-2xl overflow-hidden relative animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      <div className="h-[60vh] lg:h-[70vh] relative bg-[#E6EBF8] overflow-hidden">
-        <AssetTreeMap
-          data={graphData}
-          rootNodeId={currentRootId}
-          onSelect={(node) => {
-            if (graphData) {
-              const hasChildren = graphData.edges.some(
-                (e) => e.from === node.id,
-              );
-              const isKnownAsset = graphRootIds.has(node.id.toLowerCase());
-
-              if (
-                isKnownAsset &&
-                node.id.toLowerCase() !== asset?.id.toLowerCase()
-              ) {
-                onSelectAsset(
-                  node.id,
-                  node.chain || "global",
-                  node.protocol || "",
-                );
-              } else if (hasChildren) {
-                applyLocalDrilldown(node);
-              }
-            }
-          }}
-          onSelectOthers={handleSelectOthers}
-          isOthersView={isOthersView}
-          othersChildrenIds={othersChildrenIds}
-          selectedNodeId={selectedNode?.id}
-        />
-
+    <div className="w-full border border-black bg-[#EAE5D9] shadow-2xl overflow-hidden relative p-3">
+      <div className="flex flex-col gap-2 h-[60vh] lg:h-[70vh]">
         {infoNode && (
-          <FloatingNodeInfo
+          <RootNodeHeader
             node={infoNode}
             tvl={tvl}
             onBack={
@@ -169,6 +139,37 @@ function UniversalTreemapView({
             }
           />
         )}
+        <div className="flex-grow relative bg-[#E6EBF8] border border-black overflow-hidden">
+          <AssetTreeMap
+            data={graphData}
+            rootNodeId={currentRootId}
+            onSelect={(node) => {
+              if (graphData) {
+                const hasChildren = graphData.edges.some(
+                  (e) => e.from === node.id,
+                );
+                const isKnownAsset = graphRootIds.has(node.id.toLowerCase());
+
+                if (
+                  isKnownAsset &&
+                  node.id.toLowerCase() !== asset?.id.toLowerCase()
+                ) {
+                  onSelectAsset(
+                    node.id,
+                    node.chain || "global",
+                    node.protocol || "",
+                  );
+                } else if (hasChildren) {
+                  applyLocalDrilldown(node);
+                }
+              }
+            }}
+            onSelectOthers={handleSelectOthers}
+            isOthersView={isOthersView}
+            othersChildrenIds={othersChildrenIds}
+            selectedNodeId={selectedNode?.id}
+          />
+        </div>
       </div>
     </div>
   );
