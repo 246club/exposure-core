@@ -46,7 +46,6 @@ export default function AssetTreeMap({
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const portalCreatedRef = useRef(false);
   const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
   const [hoverState, setHoverState] = useState<{
     datum: TreemapHoverCardDatum;
@@ -99,20 +98,11 @@ export default function AssetTreeMap({
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const existing = document.getElementById("treemap-tooltip-portal");
-    if (existing) {
-      setPortalEl(existing);
-      return;
-    }
-
     const el = document.createElement("div");
-    el.id = "treemap-tooltip-portal";
     document.body.appendChild(el);
-    portalCreatedRef.current = true;
     setPortalEl(el);
 
     return () => {
-      if (!portalCreatedRef.current) return;
       if (el.parentNode) el.parentNode.removeChild(el);
     };
   }, []);
