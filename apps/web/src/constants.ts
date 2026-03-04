@@ -9,4 +9,5 @@ export interface SearchIndexEntry {
   curator?: string | null;
   tvlUsd?: number | null;
   logoKeys?: string[];
+  typeLabel?: string;
 }

@@ -40,6 +40,41 @@ const shortChainLabel = (value: string): string => {
   }
 };
 
+const canonicalizeProtocolToken = (raw: string): string => {
+  const p = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+
+  if (p.startsWith("morpho")) {
+    if (p.includes("v2")) return "morpho-v2";
+    if (p.includes("v1")) return "morpho-v1";
+    return "morpho";
+  }
+
+  if (p.startsWith("euler")) {
+    if (p.includes("v2")) return "euler-v2";
+    if (p.includes("v1")) return "euler-v1";
+    return "euler";
+  }
+
+  return p;
+};
+
+const canonicalizeNodeId = (raw: string): string => {
+  const normalized = raw.trim();
+  if (!normalized) return "";
+
+  const parts = normalized.split(":");
+  if (parts.length < 2) return normalized.toLowerCase();
+
+  const chain = parts[0].trim().toLowerCase();
+  const protocol = canonicalizeProtocolToken(parts[1]);
+  const rest = parts.slice(2).join(":").trim().toLowerCase();
+
+  return rest ? `${chain}:${protocol}:${rest}` : `${chain}:${protocol}`;
+};
+
 const buildChainLabel = (
   chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
 ): string => {
@@ -56,9 +91,13 @@ const buildChainLabel = (
   return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
 };
 
-const shouldGroupAcrossChains = (protocol: string): boolean => {
+const isMorphoOrEuler = (protocol: string): boolean => {
   const value = protocol.trim().toLowerCase();
-  return value !== "morpho" && value !== "euler";
+  return value.startsWith("morpho") || value.startsWith("euler");
+};
+
+const shouldGroupAcrossChains = (protocol: string): boolean => {
+  return !isMorphoOrEuler(protocol);
 };
 
 function UniversalTreemapView({
@@ -84,9 +123,9 @@ function UniversalTreemapView({
   } = useAssetData(
     asset
       ? {
-          id: asset.id,
-          chain: asset.chain,
-          protocol: asset.protocol,
+          id: canonicalizeNodeId(asset.id),
+          chain: asset.chain.trim().toLowerCase(),
+          protocol: canonicalizeProtocolToken(asset.protocol),
         }
       : null,
   );
@@ -148,19 +187,22 @@ function UniversalTreemapView({
                 const hasChildren = graphData.edges.some(
                   (e) => e.from === node.id,
                 );
-                const isKnownAsset = graphRootIds.has(node.id.toLowerCase());
+                const canonicalId = canonicalizeNodeId(node.id);
+                const isKnownAsset = graphRootIds.has(canonicalId);
 
-                if (
+                if (hasChildren) {
+                  applyLocalDrilldown(node);
+                } else if (
                   isKnownAsset &&
                   node.id.toLowerCase() !== asset?.id.toLowerCase()
                 ) {
+                  const [chainFromId = "global", protocolFromId = ""] =
+                    canonicalId.split(":");
                   onSelectAsset(
-                    node.id,
-                    node.chain || "global",
-                    node.protocol || "",
+                    canonicalId,
+                    chainFromId || "global",
+                    protocolFromId || "",
                   );
-                } else if (hasChildren) {
-                  applyLocalDrilldown(node);
                 }
               }
             }}
@@ -195,15 +237,34 @@ function HomeInner() {
 
   const activeAsset = useMemo(() => {
     if (!activeAssetId) return null;
-    return (
-      dynamicIndex.find(
-        (e) =>
-          e.id === activeAssetId &&
-          (!activeAssetChain || e.chain === activeAssetChain) &&
-          (!activeAssetProtocol || e.protocol === activeAssetProtocol),
-      ) || null
+    const normalizedId = canonicalizeNodeId(activeAssetId);
+    const normalizedChain = activeAssetChain?.trim().toLowerCase() ?? null;
+    const normalizedProtocol = activeAssetProtocol
+      ? canonicalizeProtocolToken(activeAssetProtocol)
+      : null;
+    const byId = dynamicIndex.filter(
+      (e) => canonicalizeNodeId(e.id) === normalizedId,
     );
+    if (byId.length === 0) return null;
+    const strictMatch = byId.find(
+      (e) =>
+        (!normalizedChain || e.chain.toLowerCase() === normalizedChain) &&
+        (!normalizedProtocol ||
+          canonicalizeProtocolToken(e.protocol) === normalizedProtocol),
+    );
+    return strictMatch || byId[0] || null;
   }, [dynamicIndex, activeAssetId, activeAssetChain, activeAssetProtocol]);
+
+  const activeAssetFallback = useMemo(() => {
+    if (!activeAssetId) return null;
+    return {
+      id: canonicalizeNodeId(activeAssetId),
+      chain: (activeAssetChain ?? "global").trim().toLowerCase(),
+      protocol: canonicalizeProtocolToken(activeAssetProtocol ?? ""),
+      name: activeAssetId.trim(),
+      nodeId: canonicalizeNodeId(activeAssetId),
+    } as SearchIndexEntry;
+  }, [activeAssetId, activeAssetChain, activeAssetProtocol]);
 
   const updateParams = useCallback(
     (newParams: Record<string, string | null>) => {
@@ -362,7 +423,7 @@ function HomeInner() {
       const baseKey = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
       const key = shouldGroupAcrossChains(protocol)
         ? baseKey
-        : `${baseKey}|${entry.id.trim().toLowerCase()}`;
+        : `${baseKey}|${chain}|${entry.id.trim().toLowerCase()}`;
       const tvlUsd = safeTvl(entry.tvlUsd);
       const existing = groups.get(key);
       if (!existing) {
@@ -449,7 +510,7 @@ function HomeInner() {
 
       <main className="flex-grow flex flex-col px-6 md:px-24 lg:px-40 py-12">
         <UniversalTreemapView
-          asset={activeAsset || topAsset}
+          asset={activeAsset || activeAssetFallback || topAsset}
           onSelectAsset={(id, chain, protocol) =>
             updateParams({
               id,

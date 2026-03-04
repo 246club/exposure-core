@@ -21,7 +21,7 @@ interface TreemapTileDatum extends Record<string, unknown> {
   childCount?: number;
   isTerminal?: boolean;
   directLeavesCount?: number;
-  allocations?: { id: string; name: string; value: number }[];
+  allocations?: { id: string; name: string; value: number; node?: GraphNode }[];
 }
 
 interface CustomContentProps extends Record<string, unknown> {
@@ -373,15 +373,40 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
         id: item.id,
         name: item.name,
         value: item.value,
+        node: item.node,
       }));
 
     if (items.length === 0) return null;
 
+    const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+    if (!Number.isFinite(totalValue) || totalValue <= 0) return null;
+
+    const baseX = x + margin + INNER_GAP;
+    const baseY = y + headerHeight + margin + INNER_GAP;
+    let usedHeight = 0;
+    const layouts = items
+      .map((item, index) => {
+        const isLast = index === items.length - 1;
+        const height = isLast
+          ? Math.max(0, availH - usedHeight)
+          : (availH * item.value) / totalValue;
+        const layout = {
+          ...item,
+          x: baseX,
+          y: baseY + usedHeight,
+          width: availW,
+          height,
+        };
+        usedHeight += height;
+        return layout;
+      })
+      .filter((layout) => layout.height > 0);
+
     return (
       <g>
         <rect
-          x={x + margin + INNER_GAP}
-          y={y + headerHeight + margin + INNER_GAP}
+          x={baseX}
+          y={baseY}
           width={availW}
           height={availH}
           style={{
@@ -391,9 +416,38 @@ export const AssetTreeMapTile = (props: Record<string, unknown>) => {
           }}
           pointerEvents="none"
         />
+        {layouts.map((layout) => {
+          const handleAllocationSelect: React.MouseEventHandler<
+            SVGRectElement
+          > = (e) => {
+            e.stopPropagation();
+            if (!layout.node) return;
+            void onSelect(layout.node, {
+              lendingPosition: dataItem?.lendingPosition,
+            });
+          };
+
+          return (
+            <rect
+              key={layout.id}
+              x={layout.x}
+              y={layout.y}
+              width={layout.width}
+              height={layout.height}
+              style={{
+                fill: "#E6EBF8",
+                stroke: "#000000",
+                strokeWidth: 0.5,
+                cursor: layout.node ? "pointer" : "default",
+                pointerEvents: "none",
+              }}
+              onClick={handleAllocationSelect}
+            />
+          );
+        })}
         <text
-          x={x + margin + INNER_GAP + 6}
-          y={y + headerHeight + margin + INNER_GAP + 18}
+          x={baseX + 6}
+          y={baseY + 18}
           fontSize={10}
           fill="rgba(0,0,0,0.8)"
           style={{ fontFamily: monoFont, letterSpacing: "0.08em" }}

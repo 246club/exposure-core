@@ -36,9 +36,13 @@ const buildChainLabel = (
   return `${chainNames.slice(0, 2).join("/")}+${chainNames.length - 2}`;
 };
 
-const shouldGroupAcrossChains = (protocol: string): boolean => {
+const isMorphoOrEuler = (protocol: string): boolean => {
   const value = protocol.trim().toLowerCase();
-  return value !== "morpho" && value !== "euler";
+  return value.startsWith("morpho") || value.startsWith("euler");
+};
+
+const shouldGroupAcrossChains = (protocol: string): boolean => {
+  return !isMorphoOrEuler(protocol);
 };
 
 export default function AssetPage() {
@@ -256,7 +260,7 @@ export default function AssetPage() {
       const baseKey = `${protocol.toLowerCase()}|${name.toLowerCase()}`;
       const key = shouldGroupAcrossChains(protocol)
         ? baseKey
-        : `${baseKey}|${entry.id.trim().toLowerCase()}`;
+        : `${baseKey}|${chain}|${entry.id.trim().toLowerCase()}`;
       const tvlUsd = safeTvl(entry.tvlUsd);
       const existing = groups.get(key);
       if (!existing) {

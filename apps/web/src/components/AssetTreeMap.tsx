@@ -55,7 +55,7 @@ export default function AssetTreeMap({
     h: number;
   } | null>(null);
   const [allocationsByNodeId, setAllocationsByNodeId] = useState<
-    Map<string, { id: string; name: string; value: number }[]>
+    Map<string, { id: string; name: string; value: number; node?: GraphNode }[]>
   >(new Map());
 
   useEffect(() => {
@@ -209,6 +209,7 @@ export default function AssetTreeMap({
             id: e.to,
             name: toNode?.name ?? e.to,
             value: Math.abs(e.allocationUsd),
+            node: toNode,
           };
         })
         .sort((a, b) => b.value - a.value);
@@ -304,6 +305,7 @@ export default function AssetTreeMap({
             id: m.nodeId,
             name: m.name,
             value: m.value,
+            node: m.fullNode,
           })),
         },
       ];
@@ -346,7 +348,7 @@ export default function AssetTreeMap({
     const load = async () => {
       const updates = new Map<
         string,
-        { id: string; name: string; value: number }[]
+        { id: string; name: string; value: number; node?: GraphNode }[]
       >();
       const limitedIds = missingIds.slice(0, 50);
 
@@ -375,6 +377,7 @@ export default function AssetTreeMap({
                   id: e.to,
                   name: node?.name ?? e.to,
                   value: Math.abs(e.allocationUsd),
+                  node,
                 };
               })
               .filter((e) => Number.isFinite(e.value) && e.value > 0)

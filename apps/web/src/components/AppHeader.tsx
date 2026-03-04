@@ -42,6 +42,7 @@ interface DropdownGroup {
   key: string;
   protocol: string;
   name: string;
+  displayName?: string;
   logoKeys?: string[];
   chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[];
   totalTvlUsd: number | null;
@@ -219,6 +220,7 @@ export function AppHeader({
                       logoKeys: primary.logoKeys ?? group.logoKeys,
                     }).slice(0, 2);
                     const chainLabel = buildChainLabel(group.chains);
+                    const rowName = group.displayName || group.name;
                     const tvlLabel =
                       typeof group.totalTvlUsd === "number"
                         ? new Intl.NumberFormat("en-US", {
@@ -270,7 +272,7 @@ export function AppHeader({
                           </div>
                           <div className="min-w-0">
                             <div className="text-[10px] font-black uppercase tracking-tight group-hover/item:text-[#00FF85] transition-colors truncate">
-                              {group.name}
+                              {rowName}
                             </div>
                             <div className="text-[8px] font-bold text-black/30 uppercase tracking-widest truncate">
                               {group.protocol} • {chainLabel}
