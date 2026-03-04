@@ -20,7 +20,6 @@ interface RootNodeHeaderProps {
 
 export function RootNodeHeader({ node, tvl, onBack }: RootNodeHeaderProps) {
   const logos = getNodeLogos(node);
-  const monoFont = "'JetBrains Mono', monospace";
 
   const apyForDisplay =
     typeof node.apy === "number"
@@ -62,10 +61,7 @@ export function RootNodeHeader({ node, tvl, onBack }: RootNodeHeaderProps) {
           </div>
 
           <div className="min-w-0 flex items-baseline gap-2">
-            <div
-              className="text-[14px] font-black uppercase tracking-tight truncate"
-              style={{ fontFamily: monoFont }}
-            >
+            <div className="font-mono text-[14px] font-black uppercase tracking-tight truncate">
               {node.name}
             </div>
             <div className="text-[9px] font-bold text-black/30 uppercase tracking-widest truncate">
