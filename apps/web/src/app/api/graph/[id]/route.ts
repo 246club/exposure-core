@@ -8,6 +8,41 @@ import { tryHeadBlobUrl } from "@/lib/vercelBlob";
 
 export const runtime = "nodejs";
 
+const canonicalizeProtocolToken = (raw: string): string => {
+  const p = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
+
+  if (p.startsWith("morpho")) {
+    if (p.includes("v2")) return "morpho-v2";
+    if (p.includes("v1")) return "morpho-v1";
+    return "morpho";
+  }
+
+  if (p.startsWith("euler")) {
+    if (p.includes("v2")) return "euler-v2";
+    if (p.includes("v1")) return "euler-v1";
+    return "euler";
+  }
+
+  return p;
+};
+
+const canonicalizeNodeId = (raw: string): string => {
+  const normalized = raw.trim();
+  if (!normalized) return "";
+
+  const parts = normalized.split(":");
+  if (parts.length < 2) return normalized.toLowerCase();
+
+  const chain = parts[0].trim().toLowerCase();
+  const protocol = canonicalizeProtocolToken(parts[1]);
+  const rest = parts.slice(2).join(":").trim().toLowerCase();
+
+  return rest ? `${chain}:${protocol}:${rest}` : `${chain}:${protocol}`;
+};
+
 const normalizeNodeIdFromPathParam = (raw: string): string => {
   let decoded = raw;
   try {
@@ -16,7 +51,7 @@ const normalizeNodeIdFromPathParam = (raw: string): string => {
     decoded = raw;
   }
 
-  return decoded.trim().toLowerCase();
+  return canonicalizeNodeId(decoded);
 };
 
 const decodedNodeIdFromPathParam = (raw: string): string => {
@@ -31,10 +66,11 @@ const decodedNodeIdFromPathParam = (raw: string): string => {
 };
 
 const protocolToFolder = (protocol: string | null): string | null => {
-  const p = protocol?.trim().toLowerCase() ?? null;
+  const p = protocol ? canonicalizeProtocolToken(protocol) : null;
   if (!p) return null;
 
   if (p === "morpho-v1" || p === "morpho-v2" || p === "morpho") return "morpho";
+  if (p === "euler-v1" || p === "euler-v2" || p === "euler") return "euler";
   return p;
 };
 
@@ -46,7 +82,11 @@ const inferProtocolFolderFromNodeId = (normalizedId: string): string | null => {
 };
 
 const listFixtureProtocolFolders = async (): Promise<string[]> => {
-  const fixturesRoot = resolveRepoPathFromWebCwd("server", "fixtures", "output");
+  const fixturesRoot = resolveRepoPathFromWebCwd(
+    "server",
+    "fixtures",
+    "output",
+  );
   try {
     const entries = await readdir(fixturesRoot, { withFileTypes: true });
     return entries
@@ -58,14 +98,22 @@ const listFixtureProtocolFolders = async (): Promise<string[]> => {
   }
 };
 
-const fixtureCandidatesForNode = async (normalizedId: string, request: Request): Promise<string[]> => {
+const fixtureCandidatesForNode = async (
+  normalizedId: string,
+  request: Request,
+): Promise<string[]> => {
   const url = new URL(request.url);
-  const requestedProtocolFolder = protocolToFolder(url.searchParams.get("protocol"));
+  const requestedProtocolFolder = protocolToFolder(
+    url.searchParams.get("protocol"),
+  );
   const inferredProtocolFolder = inferProtocolFolderFromNodeId(normalizedId);
 
   const protocolFolders: string[] = [];
   if (requestedProtocolFolder) protocolFolders.push(requestedProtocolFolder);
-  if (inferredProtocolFolder && inferredProtocolFolder !== requestedProtocolFolder) {
+  if (
+    inferredProtocolFolder &&
+    inferredProtocolFolder !== requestedProtocolFolder
+  ) {
     protocolFolders.push(inferredProtocolFolder);
   }
 
@@ -73,8 +121,14 @@ const fixtureCandidatesForNode = async (normalizedId: string, request: Request):
     protocolFolders.push(...(await listFixtureProtocolFolders()));
   }
 
-  const fixturesRoot = resolveRepoPathFromWebCwd("server", "fixtures", "output");
-  return protocolFolders.map((protocol) => resolve(fixturesRoot, protocol, `${normalizedId}.json`));
+  const fixturesRoot = resolveRepoPathFromWebCwd(
+    "server",
+    "fixtures",
+    "output",
+  );
+  return protocolFolders.map((protocol) =>
+    resolve(fixturesRoot, protocol, `${normalizedId}.json`),
+  );
 };
 
 export async function HEAD(
@@ -92,9 +146,13 @@ export async function HEAD(
   // Dev/local: confirm fixtures existence without reading full contents.
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     const tried = await fixtureCandidatesForNode(normalizedId, request);
-    const fallback = decodedId && decodedId.toLowerCase() !== normalizedId
-      ? await fixtureCandidatesForNode(decodedId.trim().toLowerCase(), request)
-      : [];
+    const fallback =
+      decodedId && decodedId.toLowerCase() !== normalizedId
+        ? await fixtureCandidatesForNode(
+            decodedId.trim().toLowerCase(),
+            request,
+          )
+        : [];
     const candidates = [...tried, ...fallback];
 
     for (const filePath of candidates) {
@@ -144,13 +202,16 @@ export async function GET(
   // Layout: server/fixtures/output/<protocol>/<nodeId>.json
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     const tried = await fixtureCandidatesForNode(normalizedId, request);
-    const fallback = decodedId && decodedId.toLowerCase() !== normalizedId
-      ? await fixtureCandidatesForNode(decodedId.trim().toLowerCase(), request)
-      : [];
+    const fallback =
+      decodedId && decodedId.toLowerCase() !== normalizedId
+        ? await fixtureCandidatesForNode(
+            decodedId.trim().toLowerCase(),
+            request,
+          )
+        : [];
     const candidates = [...tried, ...fallback];
 
     for (const filePath of candidates) {
-
       try {
         const raw = await readFile(filePath, "utf8");
 
@@ -164,7 +225,11 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { error: "Graph snapshot not found (fixtures)", id: normalizedId, tried: candidates },
+      {
+        error: "Graph snapshot not found (fixtures)",
+        id: normalizedId,
+        tried: candidates,
+      },
       { status: 404 },
     );
   }
