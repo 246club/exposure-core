@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ResponsiveContainer, Treemap } from "recharts";
 import { GraphSnapshot, GraphNode, GraphEdge } from "@/types";
 import { getDirectChildren } from "@/lib/graph";
 import { getNodeTypeLabel } from "@/lib/nodeType";
@@ -10,8 +9,15 @@ import {
   TreemapHoverCard,
   type TreemapHoverCardDatum,
 } from "@/components/TreemapHoverCard";
-import { AssetTreeMapTile } from "@/components/AssetTreeMapTile";
+import dynamic from "next/dynamic";
 import { normalizeId } from "@/utils/formatters";
+
+const AssetTreeMapKonva = dynamic(
+  () => import("./AssetTreeMapKonva").then((m) => m.AssetTreeMapKonva),
+  {
+    ssr: false,
+  },
+);
 
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
@@ -270,8 +276,6 @@ export default function AssetTreeMap({
     if (isOthersView) return mappedChildren;
 
     // Others aggregation logic
-    // Goal: group physically small tiles.
-    // We approximate physical size via area: tile area ~= percent * containerArea.
     const OTHERS_AGGREGATION_MIN_TILE_AREA_PX = 2800; // ~53x53px
     const OTHERS_AGGREGATION_MIN_COUNT = 3;
     const OTHERS_AGGREGATION_MIN_MAJOR_COUNT = 6;
@@ -288,7 +292,6 @@ export default function AssetTreeMap({
     let major = sorted.filter((c) => c.percent >= MIN_PERCENT);
     let minor = sorted.filter((c) => c.percent < MIN_PERCENT);
 
-    // If everything is tiny, keep a few largest tiles visible (avoid a full-screen "OTHERS" tile).
     if (
       major.length === 0 &&
       sorted.length > OTHERS_AGGREGATION_MIN_MAJOR_COUNT
@@ -429,7 +432,10 @@ export default function AssetTreeMap({
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-[#E6EBF8] relative">
+    <div
+      ref={containerRef}
+      className="w-full h-full bg-black relative overflow-hidden"
+    >
       {isOthersView && (
         <div className="absolute top-10 right-10 z-20 pointer-events-none">
           <div className="px-5 py-2.5 bg-black border border-black text-[9px] font-black text-[#00FF85] uppercase tracking-[0.3em] shadow-xl">
@@ -443,37 +449,29 @@ export default function AssetTreeMap({
         }`}
         className="w-full h-full"
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <Treemap
-            data={chartData}
-            dataKey="value"
-            aspectRatio={16 / 9}
-            stroke="transparent"
-            content={
-              <AssetTreeMapTile
-                onSelect={onSelect}
-                onSelectOthers={onSelectOthers}
-                selectedNodeId={selectedNodeId}
-                pressedNodeId={pressedNodeId}
-                onPressStart={setPressedNodeId}
-                onPressEnd={() => setPressedNodeId(null)}
-                lastClick={lastClick ?? null}
-                onHover={(
-                  datum: Record<string, unknown>,
-                  point: { clientX: number; clientY: number },
-                ) => {
-                  setHoverState({
-                    datum: datum as unknown as TreemapHoverCardDatum,
-                    clientX: point.clientX,
-                    clientY: point.clientY,
-                  });
-                }}
-                onHoverEnd={() => setHoverState(null)}
-              />
-            }
-            isAnimationActive={false}
-          />
-        </ResponsiveContainer>
+        <AssetTreeMapKonva
+          data={chartData}
+          width={containerSize.width}
+          height={containerSize.height}
+          onSelect={onSelect}
+          onSelectOthers={onSelectOthers}
+          selectedNodeId={selectedNodeId}
+          pressedNodeId={pressedNodeId}
+          onPressStart={setPressedNodeId}
+          onPressEnd={() => setPressedNodeId(null)}
+          lastClick={lastClick ?? null}
+          onHover={(
+            datum: TreemapHoverCardDatum,
+            point: { clientX: number; clientY: number },
+          ) => {
+            setHoverState({
+              datum,
+              clientX: point.clientX,
+              clientY: point.clientY,
+            });
+          }}
+          onHoverEnd={() => setHoverState(null)}
+        />
       </div>
 
       {hoverState && portalEl

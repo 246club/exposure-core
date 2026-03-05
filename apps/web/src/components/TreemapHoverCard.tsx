@@ -96,12 +96,12 @@ export const TreemapHoverCard = ({
       </div>
 
       <div className="flex flex-col gap-0.5 mb-6">
-        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em]">
+        <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em]">
           {isOthers ? "Total Aggregate Value" : "Allocation Value"}
         </div>
         <div
           className={cn(
-            "text-3xl font-black leading-none tracking-tighter font-mono",
+            "text-3xl font-bold leading-none tracking-tighter font-mono",
             isTerminal ? "text-[#FB7185]" : "text-[#00FF85]",
           )}
         >
@@ -112,7 +112,7 @@ export const TreemapHoverCard = ({
       {isTerminal && (
         <div className="mb-6 px-3 py-1.5 bg-[#E11D48]/10 border border-[#E11D48]/20 rounded flex items-center justify-center gap-2">
           <div className="w-1 h-1 rounded-full bg-[#E11D48]/60" />
-          <span className="text-[9px] font-black text-[#FB7185] uppercase tracking-[0.2em]">
+          <span className="text-[9px] font-bold text-[#FB7185] uppercase tracking-[0.2em]">
             End of Path
           </span>
         </div>
@@ -121,10 +121,10 @@ export const TreemapHoverCard = ({
       <div className="h-px w-full bg-white/5 mb-4" />
 
       <div className="flex items-center justify-between">
-        <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em]">
+        <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em]">
           Portfolio Share
         </div>
-        <div className="text-xs font-black text-white font-mono">
+        <div className="text-xs font-bold text-white font-mono">
           {percent === null ? "—" : `${(percent * 100).toFixed(2)}%`}
         </div>
       </div>
@@ -132,7 +132,7 @@ export const TreemapHoverCard = ({
       {downstreamRows.length > 0 && !isOthers && (
         <>
           <div className="h-px w-full bg-white/5 my-4" />
-          <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.1em] mb-3">
+          <div className="text-[10px] font-bold text-white/30 uppercase tracking-[0.1em] mb-3">
             1-Hop Downstream
           </div>
           <div className="flex flex-col gap-2">
@@ -141,7 +141,7 @@ export const TreemapHoverCard = ({
                 <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight truncate pr-3">
                   {row.name}
                 </div>
-                <div className="text-[10px] font-black text-white/70 font-mono">
+                <div className="text-[10px] font-bold text-white/70 font-mono">
                   {currencyFormatter.format(Math.abs(row.allocationUsd))}
                 </div>
               </div>

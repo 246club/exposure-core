@@ -166,7 +166,7 @@ function UniversalTreemapView({
 
   return (
     <div className="w-full border border-black bg-[#EAE5D9] shadow-2xl overflow-hidden relative p-3">
-      <div className="flex flex-col gap-2 h-[60vh] lg:h-[70vh]">
+      <div className="flex flex-col gap-2 h-[50vh] lg:h-[60vh]">
         {infoNode && (
           <RootNodeHeader
             node={infoNode}
@@ -178,7 +178,7 @@ function UniversalTreemapView({
             }
           />
         )}
-        <div className="flex-grow relative bg-[#E6EBF8] border border-black overflow-hidden">
+        <div className="flex-grow relative bg-[#E6EBF8] overflow-hidden">
           <AssetTreeMap
             data={graphData}
             rootNodeId={currentRootId}
