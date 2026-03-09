@@ -17,6 +17,12 @@ import { GraphNode } from "@/types";
 import { currencyFormatter } from "@/utils/formatters";
 import { getNodeLogos } from "@/lib/logos";
 
+interface AllocationItem {
+  id: string;
+  name: string;
+  value: number;
+}
+
 interface TreemapTileDatum {
   name: string;
   value: number;
@@ -29,7 +35,7 @@ interface TreemapTileDatum {
   typeLabel?: string;
   isVault?: boolean;
   directLeavesCount?: number;
-  allocations?: { id: string; name: string; value: number }[];
+  allocations?: AllocationItem[];
   isOthers?: boolean;
   childIds?: string[];
   childCount?: number;
@@ -65,10 +71,8 @@ const TILE_STYLE = {
     defaultFill: "#E6EBF8",
     defaultText: "#000000",
     terminalText: "#9F1239",
-    terminalStroke: "rgba(225, 29, 72, 0.5)",
     selectionFill: "rgba(0, 0, 0, 0.08)",
     innerBorder: "#000000",
-    innerFill: "#E6EBF8",
     innerText: "rgba(0,0,0,0.6)",
   },
   header: {
@@ -77,28 +81,38 @@ const TILE_STYLE = {
     ratio: 0.2,
     fallback: 20,
   },
+  nested: {
+    minLayoutWidth: 40,
+    minLayoutHeight: 30,
+    maxItems: 12,
+    othersLabelMinWidth: 60,
+    othersLabelMinHeight: 40,
+    othersLabelWidth: 50,
+    othersLabelOffsetX: 55,
+    othersLabelOffsetY: 10,
+    labelMinWidth: 35,
+    labelMinHeight: 12,
+    labelInset: 2,
+    labelWidthOffset: 6,
+    labelFontSize: 10.5,
+  },
   logo: {
     size: 16,
     step: 12,
     gutter: 12,
     maxCount: 3,
     minWidth: 60,
-    minHeight: 50,
   },
   padding: {
-    tileInset: 1,
     textX: 8,
     inner: 6,
-    innerTextInset: 24,
   },
   thresholds: {
     labelWidth: 40,
     labelHeight: 20,
-    minTextWidth: 28,
-    innerWidth: 80,
-    innerHeight: 80,
+    othersLabelWidth: 90,
+    othersLabelHeight: 56,
   },
-  terminalDash: [4, 3],
 };
 
 const SR_ONLY_STYLE: React.CSSProperties = {
@@ -115,11 +129,29 @@ const SR_ONLY_STYLE: React.CSSProperties = {
 
 const getTileLabel = (data: TreemapTileDatum) => {
   const isOthers = data.isOthers;
-  const isVault = !!data.isVault;
-  const hasAllocations = !!data.allocations && data.allocations.length > 0;
-  return isOthers || hasAllocations || isVault
-    ? `${data.name} +${data.childCount || data.allocations?.length || 0} ${currencyFormatter.format(data.originalValue)}`
-    : `${data.name} ${currencyFormatter.format(data.originalValue)}`;
+  if (isOthers) {
+    return `+${data.childCount || 0} others ${currencyFormatter.format(data.originalValue)}`;
+  }
+  return `${data.name} ${currencyFormatter.format(data.originalValue)}`;
+};
+
+const getPackedTileBounds = (
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+) => {
+  const startX = Math.round(x0);
+  const startY = Math.round(y0);
+  const endX = Math.round(x1);
+  const endY = Math.round(y1);
+
+  return {
+    x: startX,
+    y: startY,
+    width: Math.max(0, endX - startX - 1),
+    height: Math.max(0, endY - startY - 1),
+  };
 };
 
 const AssetLogo = React.memo(
@@ -173,13 +205,11 @@ const TreemapTileKonva = React.memo(
     onHoverEnd: () => void;
   }) => {
     const { x0, y0, x1, y1, data } = node;
-
-    // All dimensions are rounded to ensure 1px alignment.
-    // We offset everything by +1, +1 to create the top and left 1px border.
-    const x = Math.round(x0) + TILE_STYLE.padding.tileInset;
-    const y = Math.round(y0) + TILE_STYLE.padding.tileInset;
-    const width = Math.round(x1) - Math.round(x0);
-    const height = Math.round(y1) - Math.round(y0);
+    const tileBounds = getPackedTileBounds(x0, y0, x1, y1);
+    const x = tileBounds.x;
+    const y = tileBounds.y;
+    const width = tileBounds.width;
+    const height = tileBounds.height;
 
     const nodeId = data.nodeId;
     const isSelected =
@@ -190,15 +220,12 @@ const TreemapTileKonva = React.memo(
     const isTerminal = !isOthers && !!data.isTerminal;
     const hasAllocations = !!data.allocations && data.allocations.length > 0;
 
-    const fill =
-      isOthers || isVault || hasAllocations
-        ? TILE_STYLE.colors.othersFill
-        : isTerminal
-          ? TILE_STYLE.colors.terminalFill
-          : TILE_STYLE.colors.defaultFill;
-    const stroke = isTerminal
-      ? TILE_STYLE.colors.terminalStroke
-      : TILE_STYLE.colors.defaultText;
+    const fill = isOthers
+      ? TILE_STYLE.colors.othersFill
+      : isTerminal
+        ? TILE_STYLE.colors.terminalFill
+        : TILE_STYLE.colors.defaultFill;
+
     const textColor = isTerminal
       ? TILE_STYLE.colors.terminalText
       : TILE_STYLE.colors.defaultText;
@@ -216,31 +243,15 @@ const TreemapTileKonva = React.memo(
 
     const logoPaths = data.fullNode ? getNodeLogos(data.fullNode) : [];
     const logoCount = Math.min(logoPaths.length, TILE_STYLE.logo.maxCount);
-    const logoInlineWidth = logoCount
-      ? logoCount * TILE_STYLE.logo.step + TILE_STYLE.logo.gutter
-      : 0;
-    const inlineMinWidth =
-      TILE_STYLE.padding.textX +
-      logoInlineWidth +
-      TILE_STYLE.thresholds.minTextWidth;
-    const canShowInline =
-      width > Math.max(TILE_STYLE.thresholds.labelWidth, inlineMinWidth) &&
-      height > TILE_STYLE.thresholds.labelHeight;
-    const showLogos =
-      canShowInline &&
-      logoCount > 0 &&
-      width > TILE_STYLE.logo.minWidth &&
-      height > TILE_STYLE.logo.minHeight;
-
     const label = getTileLabel(data);
-
     const fontSize = TILE_STYLE.fontSize;
-    const textX = showLogos
-      ? TILE_STYLE.padding.textX +
-        logoCount * TILE_STYLE.logo.step +
-        TILE_STYLE.logo.gutter
-      : TILE_STYLE.padding.textX;
-    const textWidth = Math.max(0, width - TILE_STYLE.padding.textX - textX);
+
+    const textX =
+      logoCount > 0 && width > TILE_STYLE.logo.minWidth
+        ? TILE_STYLE.padding.textX +
+          logoCount * TILE_STYLE.logo.step +
+          TILE_STYLE.logo.gutter
+        : TILE_STYLE.padding.textX;
 
     const handleClick = useCallback(() => {
       if (isOthers && onSelectOthers && data.childIds) {
@@ -257,6 +268,45 @@ const TreemapTileKonva = React.memo(
       [data, onHover],
     );
 
+    // Nested Treemap Calculation
+    const innerMargin = TILE_STYLE.padding.inner;
+    const availW = Math.max(0, width - innerMargin * 2);
+    const availH = Math.max(0, height - headerHeight - innerMargin * 2);
+
+    const nestedLayout = useMemo(() => {
+      const allocations = data.allocations || [];
+      if (
+        allocations.length === 0 ||
+        availW < TILE_STYLE.nested.minLayoutWidth ||
+        availH < TILE_STYLE.nested.minLayoutHeight
+      ) {
+        return null;
+      }
+
+      const items = allocations.slice(0, TILE_STYLE.nested.maxItems);
+      const hierarchy = d3
+        .hierarchy<{ children: AllocationItem[] } | AllocationItem>({
+          children: items,
+        })
+        .sum((d) => ("value" in d ? d.value : 0))
+        .sort((a, b) => (b.value || 0) - (a.value || 0));
+
+      const treemap = d3
+        .treemap<{ children: AllocationItem[] } | AllocationItem>()
+        .size([availW, availH])
+        .padding(0)
+        .round(true);
+
+      const root = treemap(hierarchy);
+      return {
+        children: root.children || [],
+        othersCount: Math.max(
+          0,
+          allocations.length - TILE_STYLE.nested.maxItems,
+        ),
+      };
+    }, [data.allocations, availW, availH]);
+
     return (
       <Group
         x={x}
@@ -270,126 +320,163 @@ const TreemapTileKonva = React.memo(
         onMouseLeave={onHoverEnd}
       >
         <Rect
-          width={Math.max(0, width - TILE_STYLE.padding.tileInset)}
-          height={Math.max(0, height - TILE_STYLE.padding.tileInset)}
+          width={width}
+          height={height}
           fill={fill}
           opacity={isPressed || isSelected ? 0.8 : 1}
         />
         {isSelected && (
           <Rect
-            width={Math.max(0, width - TILE_STYLE.padding.tileInset)}
-            height={Math.max(0, height - TILE_STYLE.padding.tileInset)}
+            width={width}
+            height={height}
             fill={TILE_STYLE.colors.selectionFill}
             listening={false}
           />
         )}
 
-        {canShowInline && (
-          <Group
-            clipFunc={(ctx: SceneContext) => {
-              ctx.rect(
-                0,
-                0,
-                width - TILE_STYLE.padding.tileInset,
-                height - TILE_STYLE.padding.tileInset,
-              );
-            }}
-          >
-            {showLogos &&
-              logoPaths
-                .slice(0, TILE_STYLE.logo.maxCount)
-                .map((path, idx) => (
-                  <AssetLogo
-                    key={path}
-                    url={path}
-                    x={TILE_STYLE.padding.textX + idx * TILE_STYLE.logo.step}
-                    y={
-                      (headerHeight || TILE_STYLE.header.fallback) / 2 -
-                      TILE_STYLE.logo.size / 2
-                    }
-                    size={TILE_STYLE.logo.size}
-                  />
-                ))}
-            <Text
-              text={label}
-              x={textX}
-              y={
-                (headerHeight || TILE_STYLE.header.fallback) / 2 - fontSize / 2
-              }
-              width={textWidth}
-              ellipsis
-              wrap="none"
-              fontSize={fontSize}
-              fontFamily={TILE_STYLE.fontFamily}
-              fill={textColor}
-              fontStyle="bold"
-              listening={false}
-            />
-          </Group>
-        )}
-
-        {(hasAllocations || isVault) &&
-          width > TILE_STYLE.thresholds.innerWidth &&
-          height > TILE_STYLE.thresholds.innerHeight && (
+        {width > TILE_STYLE.thresholds.labelWidth &&
+          height > TILE_STYLE.thresholds.labelHeight && (
             <Group
-              x={TILE_STYLE.padding.inner}
-              y={headerHeight + TILE_STYLE.padding.inner}
+              clipFunc={(ctx: SceneContext) => {
+                ctx.rect(
+                  0,
+                  0,
+                  width,
+                  headerHeight || TILE_STYLE.header.fallback,
+                );
+              }}
             >
-              {/* Sharp 1px black border using the gutter technique */}
-              <Rect
-                width={Math.max(0, width - TILE_STYLE.padding.inner * 2)}
-                height={Math.max(
-                  0,
-                  height - headerHeight - TILE_STYLE.padding.inner * 2,
-                )}
-                fill={TILE_STYLE.colors.innerBorder}
-                listening={false}
-              />
-              <Rect
-                x={TILE_STYLE.padding.tileInset}
-                y={TILE_STYLE.padding.tileInset}
-                width={Math.max(
-                  0,
-                  width -
-                    TILE_STYLE.padding.inner * 2 -
-                    TILE_STYLE.padding.tileInset * 2,
-                )}
-                height={Math.max(
-                  0,
-                  height -
-                    headerHeight -
-                    TILE_STYLE.padding.inner * 2 -
-                    TILE_STYLE.padding.tileInset * 2,
-                )}
-                fill={TILE_STYLE.colors.innerFill}
-                listening={false}
-              />
-              {data.allocations && data.allocations.length > 0 && (
-                <Text
-                  text={`+${data.allocations.length} OTHERS`}
-                  x={TILE_STYLE.padding.inner}
-                  y={TILE_STYLE.header.min - fontSize / 2}
-                  width={Math.max(0, width - TILE_STYLE.padding.innerTextInset)}
-                  ellipsis
-                  fontSize={fontSize}
-                  fontFamily={TILE_STYLE.fontFamily}
-                  fill={TILE_STYLE.colors.innerText}
-                  fontStyle="bold"
-                  listening={false}
+              {logoPaths.slice(0, TILE_STYLE.logo.maxCount).map((path, idx) => (
+                <AssetLogo
+                  key={path}
+                  url={path}
+                  x={TILE_STYLE.padding.textX + idx * TILE_STYLE.logo.step}
+                  y={
+                    (headerHeight || TILE_STYLE.header.fallback) / 2 -
+                    TILE_STYLE.logo.size / 2
+                  }
+                  size={TILE_STYLE.logo.size}
                 />
-              )}
+              ))}
+              <Text
+                text={label}
+                x={textX}
+                y={
+                  (headerHeight || TILE_STYLE.header.fallback) / 2 -
+                  fontSize / 2
+                }
+                width={Math.max(0, width - textX - 4)}
+                ellipsis
+                wrap="none"
+                fontSize={fontSize}
+                fontFamily={TILE_STYLE.fontFamily}
+                fill={textColor}
+                fontStyle="bold"
+                listening={false}
+              />
             </Group>
           )}
 
-        {isTerminal && (
-          <Rect
-            width={Math.max(0, width - TILE_STYLE.padding.tileInset)}
-            height={Math.max(0, height - TILE_STYLE.padding.tileInset)}
-            stroke={stroke}
-            strokeWidth={1}
-            dash={TILE_STYLE.terminalDash}
-            listening={false}
-          />
+        {isOthers &&
+          data.childCount &&
+          width > TILE_STYLE.thresholds.othersLabelWidth &&
+          height > TILE_STYLE.thresholds.othersLabelHeight && (
+            <Text
+              text={`+${data.childCount} OTHERS`}
+              x={TILE_STYLE.padding.textX}
+              y={headerHeight + 6}
+              width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
+              fontSize={12}
+              fontFamily={TILE_STYLE.fontFamily}
+              fill={TILE_STYLE.colors.defaultText}
+              fontStyle="bold"
+              wrap="none"
+              ellipsis
+              listening={false}
+            />
+          )}
+
+        {nestedLayout && (
+          <Group x={innerMargin} y={headerHeight + innerMargin}>
+            <Rect
+              width={availW}
+              height={availH}
+              fill={TILE_STYLE.colors.innerBorder}
+              listening={false}
+            />
+
+            {nestedLayout.children.map((n) => {
+              const bounds = getPackedTileBounds(n.x0, n.y0, n.x1, n.y1);
+              const nw = bounds.width;
+              const nh = bounds.height;
+              const nestedData = n.data as AllocationItem;
+
+              return (
+                <Group key={nestedData.id} x={bounds.x} y={bounds.y}>
+                  <Rect
+                    width={nw}
+                    height={nh}
+                    fill={TILE_STYLE.colors.defaultFill}
+                    listening={false}
+                  />
+                  {nw > TILE_STYLE.nested.labelMinWidth &&
+                    nh > TILE_STYLE.nested.labelMinHeight && (
+                      <Text
+                        text={nestedData.name.toUpperCase()}
+                        x={TILE_STYLE.nested.labelInset}
+                        y={TILE_STYLE.nested.labelInset}
+                        width={nw - TILE_STYLE.nested.labelWidthOffset}
+                        fontSize={TILE_STYLE.nested.labelFontSize}
+                        fontFamily={TILE_STYLE.fontFamily}
+                        fill={TILE_STYLE.colors.innerText}
+                        wrap="none"
+                        ellipsis
+                        listening={false}
+                      />
+                    )}
+                </Group>
+              );
+            })}
+
+            {availW > 0 && (
+              <Rect
+                x={0}
+                y={0}
+                width={availW}
+                height={1}
+                fill={TILE_STYLE.colors.innerBorder}
+                listening={false}
+              />
+            )}
+
+            {availH > 0 && (
+              <Rect
+                x={0}
+                y={0}
+                width={1}
+                height={availH}
+                fill={TILE_STYLE.colors.innerBorder}
+                listening={false}
+              />
+            )}
+
+            {nestedLayout.othersCount > 0 &&
+              availW > TILE_STYLE.nested.othersLabelMinWidth &&
+              availH > TILE_STYLE.nested.othersLabelMinHeight && (
+                <Text
+                  text={`+${nestedLayout.othersCount} OTHERS`}
+                  x={availW - TILE_STYLE.nested.othersLabelOffsetX}
+                  y={availH - TILE_STYLE.nested.othersLabelOffsetY}
+                  width={TILE_STYLE.nested.othersLabelWidth}
+                  fontSize={6}
+                  fontFamily={TILE_STYLE.fontFamily}
+                  fill={TILE_STYLE.colors.innerText}
+                  fontStyle="bold"
+                  align="right"
+                  listening={false}
+                />
+              )}
+          </Group>
         )}
       </Group>
     );
@@ -412,6 +499,10 @@ export function AssetTreeMapKonva({
   onHover,
   onHoverEnd,
 }: AssetTreeMapKonvaProps) {
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const stageWidth = Math.max(0, Math.floor(width));
+  const stageHeight = Math.max(0, Math.floor(height));
+
   const root = useMemo(() => {
     const rootData: TreemapTileDatum & { children: TreemapTileDatum[] } = {
       name: "root",
@@ -426,19 +517,53 @@ export function AssetTreeMapKonva({
       .sum((d) => d.value)
       .sort((a, b) => (b.value || 0) - (a.value || 0));
 
-    return (
-      d3
-        .treemap<TreemapTileDatum>()
-        // Size is reduced by 1 to ensure a 1px gap at the right and bottom edges
-        .size([width - 1, height - 1])
-        .padding(0)
-        .round(false)(hierarchy)
-    );
-  }, [data, width, height]);
+    return d3
+      .treemap<TreemapTileDatum>()
+      .size([stageWidth, stageHeight])
+      .padding(0)
+      .round(true)(hierarchy);
+  }, [data, stageWidth, stageHeight]);
 
   const [dpr, setDpr] = useState(1);
+  const [stageOffset, setStageOffset] = useState({ x: 0, y: 0 });
   useEffect(() => {
     setDpr(window.devicePixelRatio || 1);
+  }, []);
+
+  useEffect(() => {
+    const measureOffset = () => {
+      const rect = wrapperRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const nextOffset = {
+        x: Math.round(rect.left) - rect.left,
+        y: Math.round(rect.top) - rect.top,
+      };
+
+      setStageOffset((prev) =>
+        prev.x === nextOffset.x && prev.y === nextOffset.y ? prev : nextOffset,
+      );
+    };
+
+    measureOffset();
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => measureOffset());
+
+    if (wrapperRef.current && resizeObserver) {
+      resizeObserver.observe(wrapperRef.current);
+    }
+
+    window.addEventListener("resize", measureOffset);
+    window.addEventListener("scroll", measureOffset, true);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", measureOffset);
+      window.removeEventListener("scroll", measureOffset, true);
+    };
   }, []);
 
   const tiles = useMemo(() => {
@@ -481,34 +606,61 @@ export function AssetTreeMapKonva({
     [onSelect, onSelectOthers],
   );
 
-  if (width <= 0 || height <= 0) return null;
+  if (stageWidth <= 0 || stageHeight <= 0) return null;
 
   return (
-    <div style={{ position: "relative", width, height }}>
-      <Stage
-        width={width}
-        height={height}
-        pixelRatio={dpr}
-        style={{ backgroundColor: "black" }}
+    <div
+      ref={wrapperRef}
+      style={{
+        position: "relative",
+        width: stageWidth,
+        height: stageHeight,
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: stageWidth,
+          height: stageHeight,
+          transform: `translate(${stageOffset.x}px, ${stageOffset.y}px)`,
+        }}
       >
-        <Layer>
-          <Rect width={width} height={height} fill="black" />
-          {tiles}
-        </Layer>
-      </Stage>
-      <div style={SR_ONLY_STYLE}>
-        {root.children?.map((node, index) => {
-          const datum = node.data;
-          return (
-            <button
-              key={datum.nodeId || index}
-              type="button"
-              onClick={() => handleTileAction(datum)}
-            >
-              {getTileLabel(datum)}
-            </button>
-          );
-        })}
+        <Stage width={stageWidth} height={stageHeight} pixelRatio={dpr}>
+          <Layer>
+            <Rect width={stageWidth} height={stageHeight} fill="black" />
+            {tiles}
+            {stageWidth > 0 && (
+              <Rect
+                width={stageWidth}
+                height={1}
+                fill="black"
+                listening={false}
+              />
+            )}
+            {stageHeight > 0 && (
+              <Rect
+                width={1}
+                height={stageHeight}
+                fill="black"
+                listening={false}
+              />
+            )}
+          </Layer>
+        </Stage>
+        <div style={SR_ONLY_STYLE}>
+          {root.children?.map((node, index) => {
+            const datum = node.data;
+            return (
+              <button
+                key={datum.nodeId || index}
+                type="button"
+                onClick={() => handleTileAction(datum)}
+              >
+                {getTileLabel(datum)}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
