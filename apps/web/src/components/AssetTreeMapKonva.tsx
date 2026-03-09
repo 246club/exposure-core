@@ -71,10 +71,8 @@ const TILE_STYLE = {
     defaultFill: "#E6EBF8",
     defaultText: "#000000",
     terminalText: "#9F1239",
-    terminalStroke: "rgba(225, 29, 72, 0.5)",
     selectionFill: "rgba(0, 0, 0, 0.08)",
     innerBorder: "#000000",
-    innerFill: "#E6EBF8",
     innerText: "rgba(0,0,0,0.6)",
   },
   header: {
@@ -89,22 +87,15 @@ const TILE_STYLE = {
     gutter: 12,
     maxCount: 3,
     minWidth: 60,
-    minHeight: 50,
   },
   padding: {
-    tileInset: 1,
     textX: 8,
     inner: 6,
-    innerTextInset: 24,
   },
   thresholds: {
     labelWidth: 40,
     labelHeight: 20,
-    minTextWidth: 28,
-    innerWidth: 80,
-    innerHeight: 80,
   },
-  terminalDash: [4, 3],
 };
 
 const SR_ONLY_STYLE: React.CSSProperties = {
