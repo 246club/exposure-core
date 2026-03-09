@@ -361,6 +361,22 @@ const TreemapTileKonva = React.memo(
             </Group>
           )}
 
+        {isOthers && data.childCount && width > 90 && height > 56 && (
+          <Text
+            text={`+${data.childCount} OTHERS`}
+            x={TILE_STYLE.padding.textX}
+            y={headerHeight + 6}
+            width={Math.max(0, width - TILE_STYLE.padding.textX * 2)}
+            fontSize={12}
+            fontFamily={TILE_STYLE.fontFamily}
+            fill={TILE_STYLE.colors.defaultText}
+            fontStyle="bold"
+            wrap="none"
+            ellipsis
+            listening={false}
+          />
+        )}
+
         {nestedLayout && (
           <Group x={innerMargin} y={headerHeight + innerMargin}>
             <Rect
