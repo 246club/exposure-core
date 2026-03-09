@@ -459,8 +459,10 @@ const TreemapTileKonva = React.memo(
 
         {isTerminal && (
           <Rect
-            width={width}
-            height={height}
+            x={2}
+            y={2}
+            width={Math.max(0, width - 4)}
+            height={Math.max(0, height - 4)}
             stroke={TILE_STYLE.colors.terminalStroke}
             strokeWidth={1}
             dash={TILE_STYLE.terminalDash}
@@ -489,6 +491,9 @@ export function AssetTreeMapKonva({
   onHoverEnd,
 }: AssetTreeMapKonvaProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const stageWidth = Math.max(0, Math.floor(width));
+  const stageHeight = Math.max(0, Math.floor(height));
+
   const root = useMemo(() => {
     const rootData: TreemapTileDatum & { children: TreemapTileDatum[] } = {
       name: "root",
@@ -505,10 +510,10 @@ export function AssetTreeMapKonva({
 
     return d3
       .treemap<TreemapTileDatum>()
-      .size([width - 1, height - 1])
+      .size([Math.max(0, stageWidth - 1), Math.max(0, stageHeight - 1)])
       .padding(0)
       .round(false)(hierarchy);
-  }, [data, width, height]);
+  }, [data, stageWidth, stageHeight]);
 
   const [dpr, setDpr] = useState(1);
   const [stageOffset, setStageOffset] = useState({ x: 0, y: 0 });
@@ -588,26 +593,21 @@ export function AssetTreeMapKonva({
     [onSelect, onSelectOthers],
   );
 
-  if (width <= 0 || height <= 0) return null;
+  if (stageWidth <= 0 || stageHeight <= 0) return null;
 
   return (
     <div
       ref={containerRef}
       style={{
         position: "relative",
-        width,
-        height,
+        width: stageWidth,
+        height: stageHeight,
         transform: `translate(${stageOffset.x}px, ${stageOffset.y}px)`,
       }}
     >
-      <Stage
-        width={width}
-        height={height}
-        pixelRatio={dpr}
-        style={{ backgroundColor: "black" }}
-      >
+      <Stage width={stageWidth} height={stageHeight} pixelRatio={dpr}>
         <Layer>
-          <Rect width={width} height={height} fill="black" />
+          <Rect width={stageWidth} height={stageHeight} fill="black" />
           {tiles}
         </Layer>
       </Stage>
