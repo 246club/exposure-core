@@ -35,7 +35,7 @@ export const TreemapHoverCard = ({
   if (!isActive) return null;
   if (!resolved) return null;
 
-  const name = String(resolved?.name ?? "").toUpperCase();
+  const name = String(resolved?.name ?? "");
   const originalValue = Number(resolved?.originalValue ?? resolved?.value ?? 0);
   const percent =
     typeof resolved?.percent === "number" ? resolved.percent : null;
@@ -51,13 +51,10 @@ export const TreemapHoverCard = ({
 
   const subtype =
     typeof resolved?.fullNode?.details?.subtype === "string"
-      ? resolved.fullNode.details.subtype.trim().toUpperCase()
+      ? resolved.fullNode.details.subtype.trim()
       : "";
 
-  const kind =
-    subtype && !isOthers
-      ? `${baseKind.toUpperCase()} • ${subtype}`
-      : baseKind.toUpperCase();
+  const kind = subtype && !isOthers ? `${baseKind} • ${subtype}` : baseKind;
 
   const downstreamRows = Array.isArray(downstream)
     ? downstream
@@ -142,7 +139,7 @@ export const TreemapHoverCard = ({
             {downstreamRows.map((row) => (
               <div key={row.id} className="flex items-center justify-between">
                 <div className="text-[10px] font-bold text-white/70 uppercase tracking-tight truncate pr-3">
-                  {(row.name || "").toUpperCase()}
+                  {row.name || ""}
                 </div>
                 <div className="text-[10px] font-bold text-white/70 font-mono">
                   {currencyFormatter.format(Math.abs(row.allocationUsd))}
