@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import {
   canonicalizeNodeId,
+  graphSnapshotBlobPath,
   graphProtocolBlobPath,
   inferProtocolFolderFromNodeId,
   protocolToFolder,
@@ -66,9 +67,27 @@ const loadBlobSnapshotForNode = async (
       if (isGraphSnapshot(snapshot)) {
         return { snapshot, path, url };
       }
-    } catch {
+    } catch (error) {
+      console.error(`Failed to load snapshot from ${url}:`, error);
       // try next protocol group
     }
+  }
+
+  const legacyPath = graphSnapshotBlobPath(normalizedId);
+  const legacyUrl = await tryHeadBlobUrl(legacyPath);
+
+  if (!legacyUrl) return null;
+
+  try {
+    const response = await fetch(legacyUrl, { cache: "no-store" });
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as unknown;
+    if (isGraphSnapshot(payload)) {
+      return { snapshot: payload, path: legacyPath, url: legacyUrl };
+    }
+  } catch (error) {
+    console.error(`Failed to load snapshot from ${legacyUrl}:`, error);
   }
 
   return null;

@@ -43,24 +43,21 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
       groupedSnapshots.set(protocol, currentGroup);
     }
 
-    const results: {
-      protocol: string;
-      path: string;
-      url: string;
-      count: number;
-    }[] = [];
+    const results = await Promise.all(
+      Array.from(groupedSnapshots.entries()).map(
+        async ([protocol, snapshots]) => {
+          const path = graphProtocolBlobPath(protocol);
+          const url = await putJsonToBlob(path, snapshots);
 
-    for (const [protocol, snapshots] of groupedSnapshots) {
-      const path = graphProtocolBlobPath(protocol);
-      const url = await putJsonToBlob(path, snapshots);
-
-      results.push({
-        protocol,
-        path,
-        url,
-        count: Object.keys(snapshots).length,
-      });
-    }
+          return {
+            protocol,
+            path,
+            url,
+            count: Object.keys(snapshots).length,
+          };
+        },
+      ),
+    );
 
     response.status(200).json({
       count: Array.from(draftGraphs.keys()).length,

@@ -45,10 +45,10 @@ export const protocolToFolder = (
   const p = protocol ? canonicalizeProtocolToken(protocol) : null;
   if (!p) return null;
 
-  if (p === "morpho-v1" || p === "morpho-v2" || p === "morpho") {
+  if (p.startsWith("morpho")) {
     return "morpho";
   }
-  if (p === "euler-v1" || p === "euler-v2" || p === "euler") {
+  if (p.startsWith("euler")) {
     return "euler";
   }
 
