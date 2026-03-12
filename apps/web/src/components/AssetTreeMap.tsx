@@ -78,6 +78,9 @@ export default function AssetTreeMap({
   const [allocationsByNodeId, setAllocationsByNodeId] = useState<
     Map<string, { id: string; name: string; value: number; node?: GraphNode }[]>
   >(new Map());
+  const [attemptedNestedNodeIds, setAttemptedNestedNodeIds] = useState<
+    Set<string>
+  >(new Set());
   const measureContainer = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -362,7 +365,7 @@ export default function AssetTreeMap({
   ]);
 
   useEffect(() => {
-    if (!data || !rootNodeId || !(graphRootIds instanceof Set)) return;
+    if (!data || !rootNodeId) return;
 
     const root = data.nodes.find((n) => n.id === rootNodeId);
     if (!root) return;
@@ -377,17 +380,9 @@ export default function AssetTreeMap({
 
     const missingIds = children
       .map((child) => normalizeId(child.id))
-      .filter((id) => {
-        const hasLocalAllocations = data.edges.some(
-          (edge) => normalizeId(edge.from) === id,
-        );
-
-        return (
-          !hasLocalAllocations &&
-          graphRootIds.has(id) &&
-          !allocationsByNodeId.has(id)
-        );
-      });
+      .filter(
+        (id) => !allocationsByNodeId.has(id) && !attemptedNestedNodeIds.has(id),
+      );
 
     if (missingIds.length === 0) return;
 
@@ -398,9 +393,11 @@ export default function AssetTreeMap({
         string,
         { id: string; name: string; value: number; node?: GraphNode }[]
       >();
+      const attempted = new Set<string>();
 
       await Promise.all(
         missingIds.slice(0, 50).map(async (id) => {
+          attempted.add(id);
           try {
             const response = await fetch(
               `/api/graph/${encodeURIComponent(id)}`,
@@ -442,7 +439,15 @@ export default function AssetTreeMap({
         }),
       );
 
-      if (cancelled || updates.size === 0) return;
+      if (cancelled) return;
+
+      setAttemptedNestedNodeIds((prev) => {
+        const next = new Set(prev);
+        attempted.forEach((id) => next.add(id));
+        return next;
+      });
+
+      if (updates.size === 0) return;
 
       setAllocationsByNodeId((prev) => {
         const next = new Map(prev);
@@ -460,8 +465,8 @@ export default function AssetTreeMap({
     };
   }, [
     allocationsByNodeId,
+    attemptedNestedNodeIds,
     data,
-    graphRootIds,
     isOthersView,
     othersChildrenIds,
     rootNodeId,
