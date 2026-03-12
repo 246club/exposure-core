@@ -18,6 +18,7 @@ export const putJsonToBlob = async (
     access: "public",
     contentType: JSON_CONTENT_TYPE,
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 
   return url;

@@ -7,7 +7,11 @@ import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
 
-import { writeJsonFile, cloneSnapshotWithRootId } from "../core/io";
+import {
+  cloneSnapshotWithRootId,
+  resolveFixtureOutputPath,
+  writeJsonFile,
+} from "../core/io";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");
@@ -17,12 +21,11 @@ export const run = async (argv: string[]): Promise<void> => {
   const shouldUpload = argv.includes("--upload");
 
   const persistSnapshot = async (rootNodeId: string, snapshot: unknown) => {
-    const outPath = resolve(
+    const outPath = resolveFixtureOutputPath(
       root,
-      "fixtures",
-      "output",
       "ethena",
       `${rootNodeId}.json`,
+      argv,
     );
 
     await writeJsonFile(outPath, snapshot);

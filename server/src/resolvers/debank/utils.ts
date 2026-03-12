@@ -133,10 +133,10 @@ export const inferTokenLogoKey = (token: TokenObject | null): string | null => {
   if (!token) return null;
 
   const candidates = [
-    token.optimized_symbol,
+    token.name,
     token.display_symbol,
     token.symbol,
-    token.name,
+    token.optimized_symbol,
   ];
 
   for (const candidate of candidates) {

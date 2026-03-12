@@ -9,7 +9,12 @@ import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
 
-import { readJson, writeJsonFile, cloneSnapshotWithRootId } from "../core/io";
+import {
+  cloneSnapshotWithRootId,
+  readJson,
+  resolveFixtureOutputPath,
+  writeJsonFile,
+} from "../core/io";
 import { createMockFetch, withMockFetch } from "../core/mock-fetch";
 import {
   createMidasAllocationsHandler,
@@ -278,12 +283,11 @@ export const run = async (argv: string[]): Promise<void> => {
         nextRootId: string,
         payload: GraphSnapshot,
       ): Promise<void> => {
-        const outPath = resolve(
+        const outPath = resolveFixtureOutputPath(
           root,
-          "fixtures",
-          "output",
           "midas",
           `${nextRootId}.json`,
+          argv,
         );
 
         await writeJsonFile(outPath, payload);

@@ -10,6 +10,7 @@
     "start:web": "pnpm -C apps/web start",
     "lint:web": "pnpm -C apps/web lint",
     "graphs:all": "tsx --env-file=.env.local server/fixtures/scripts/graphs-all.ts",
+    "graphs:upload": "tsx --env-file=.env.production server/fixtures/scripts/graphs-upload.ts",
     "lint-staged": "lint-staged",
     "prepare": "husky",
     "test": "echo \"Error: no test specified\" && exit 1"

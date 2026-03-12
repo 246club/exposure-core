@@ -8,7 +8,7 @@ import {
   inferAssetLogoKey,
   normalizeLogoKey,
 } from "../../../src/resolvers/debank/utils";
-import { readJson, writeJsonFile } from "../core/io";
+import { readJson, resolveFixturesOutputRoot, writeJsonFile } from "../core/io";
 
 interface SnapshotNode {
   id: string;
@@ -315,8 +315,9 @@ const collectSearchIndexEntries = async (
 
 const main = async (): Promise<void> => {
   const rootDir = serverDir;
+  const argv = process.argv.slice(2);
 
-  const outputDir = resolve(rootDir, "fixtures", "output");
+  const outputDir = resolveFixturesOutputRoot(rootDir, argv);
   const outPath = resolve(outputDir, "search-index.json");
 
   const entries = await collectSearchIndexEntries(outputDir);
@@ -333,7 +334,7 @@ const main = async (): Promise<void> => {
 
   await writeJsonFile(outPath, deduped);
 
-  const shouldUpload = process.argv.slice(2).includes("--upload");
+  const shouldUpload = argv.includes("--upload");
 
   if (shouldUpload) {
     await putJsonToBlob(searchIndexBlobPath(), deduped);
