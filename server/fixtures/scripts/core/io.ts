@@ -1,5 +1,5 @@
 import { mkdir, writeFile, readFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import type { Edge, GraphSnapshot, Node } from "../../../src/types";
 
@@ -16,6 +16,29 @@ export const readJson = async <T>(path: string): Promise<T> => {
   const raw = await readFile(path, "utf8");
 
   return JSON.parse(raw) as T;
+};
+
+export const getOutputDirArg = (argv: string[]): string | null => {
+  const idx = argv.indexOf("--output-dir");
+  const value = idx >= 0 ? argv[idx + 1] : null;
+
+  return value && !value.startsWith("--") ? value : null;
+};
+
+export const resolveFixturesOutputRoot = (
+  rootDir: string,
+  argv: string[] = [],
+): string => {
+  return getOutputDirArg(argv) || resolve(rootDir, "fixtures", "output");
+};
+
+export const resolveFixtureOutputPath = (
+  rootDir: string,
+  protocol: string,
+  fileName: string,
+  argv: string[] = [],
+): string => {
+  return resolve(resolveFixturesOutputRoot(rootDir, argv), protocol, fileName);
 };
 
 const normalizeChain = (chain: string): string => chain.trim().toLowerCase();

@@ -6,7 +6,7 @@ import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
 import { putJsonToBlob } from "../../../api/exposure/blob";
 import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
 
-import { writeJsonFile } from "../core/io";
+import { resolveFixtureOutputPath, writeJsonFile } from "../core/io";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..", "..");
@@ -25,12 +25,11 @@ export const run = async (argv: string[]): Promise<void> => {
       throw new Error(`Missing root node id for asset: ${asset}`);
     }
 
-    const outPath = resolve(
+    const outPath = resolveFixtureOutputPath(
       root,
-      "fixtures",
-      "output",
       "sky",
       `${rootNodeId}.json`,
+      argv,
     );
 
     await writeJsonFile(outPath, snapshot);
