@@ -383,44 +383,27 @@ export default function AssetTreeMap({
         { id: string; name: string; value: number; node?: GraphNode }[]
       >();
       const limitedIds = missingIds.slice(0, 50);
-
-      await Promise.all(
-        limitedIds.map(async (id) => {
-          try {
-            const res = await fetch(`/api/graph/${encodeURIComponent(id)}`);
-            if (!res.ok) return;
-            const json = (await res.json()) as unknown;
-            if (!json || typeof json !== "object") return;
-            const snapshot = json as GraphSnapshot;
-            if (
-              !Array.isArray(snapshot.nodes) ||
-              !Array.isArray(snapshot.edges)
-            )
-              return;
-
-            const nodesById = new Map(
-              snapshot.nodes.map((n) => [normalizeId(n.id), n] as const),
-            );
-            const allocations = snapshot.edges
-              .filter((e) => normalizeId(e.from) === id)
-              .map((e) => {
-                const node = nodesById.get(normalizeId(e.to));
-                return {
-                  id: e.to,
-                  name: node?.name ?? e.to,
-                  value: Math.abs(e.allocationUsd),
-                  node,
-                };
-              })
-              .filter((e) => Number.isFinite(e.value) && e.value > 0)
-              .sort((a, b) => b.value - a.value);
-
-            if (allocations.length > 0) updates.set(id, allocations);
-          } catch (error) {
-            console.error(`Failed to fetch 2-hop data for node ${id}:`, error);
-          }
-        }),
+      const nodesById = new Map(
+        data.nodes.map((node) => [normalizeId(node.id), node] as const),
       );
+
+      for (const id of limitedIds) {
+        const allocations = data.edges
+          .filter((edge) => normalizeId(edge.from) === id)
+          .map((edge) => {
+            const node = nodesById.get(normalizeId(edge.to));
+            return {
+              id: edge.to,
+              name: node?.name ?? edge.to,
+              value: Math.abs(edge.allocationUsd),
+              node,
+            };
+          })
+          .filter((entry) => Number.isFinite(entry.value) && entry.value > 0)
+          .sort((a, b) => b.value - a.value);
+
+        if (allocations.length > 0) updates.set(id, allocations);
+      }
 
       if (cancelled || updates.size === 0) return;
       setAllocationsByNodeId((prev) => {
