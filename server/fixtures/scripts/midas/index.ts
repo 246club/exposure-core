@@ -6,9 +6,6 @@ import { adapterFactories } from "../../../src/adapters/registry";
 import { getMidasDeploymentNodeIds } from "../../../src/adapters/midas/deployments";
 import type { GraphSnapshot } from "../../../src/types";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
-import { putJsonToBlob } from "../../../api/exposure/blob";
-import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
-
 import {
   cloneSnapshotWithRootId,
   readJson,
@@ -247,8 +244,6 @@ const createDebankMultiAssetHandler = (config: {
 
 export const run = async (argv: string[]): Promise<void> => {
   const root = serverDir;
-  const shouldUpload = argv.includes("--upload");
-
   const scenarios = await loadScenarios(argv);
   const { requestedAssets, walletsDirByAsset } =
     collectScenarioAssets(scenarios);
@@ -291,10 +286,6 @@ export const run = async (argv: string[]): Promise<void> => {
         );
 
         await writeJsonFile(outPath, payload);
-
-        if (shouldUpload) {
-          await putJsonToBlob(graphSnapshotBlobPath(nextRootId), payload);
-        }
       };
 
       const deploymentNodeIds = getMidasDeploymentNodeIds(asset);

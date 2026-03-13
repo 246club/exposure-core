@@ -3,9 +3,6 @@ import { fileURLToPath } from "node:url";
 
 import { adapterFactories } from "../../../src/adapters/registry";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
-import { putJsonToBlob } from "../../../api/exposure/blob";
-import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
-
 import { resolveFixtureOutputPath, writeJsonFile } from "../core/io";
 import { createMockFetch, withMockFetch } from "../core/mock-fetch";
 import {
@@ -20,8 +17,6 @@ const serverDir = resolve(here, "..", "..", "..");
 
 export const run = async (argv: string[]): Promise<void> => {
   const root = serverDir;
-  const shouldUpload = argv.includes("--upload");
-
   const fetchImpl = createMockFetch({
     enabledProviders: ["debank"],
     allowRealFetch: true,
@@ -53,10 +48,6 @@ export const run = async (argv: string[]): Promise<void> => {
       );
 
       await writeJsonFile(outPath, snapshot);
-
-      if (shouldUpload) {
-        await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
-      }
     }
   });
 };

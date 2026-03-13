@@ -4,9 +4,6 @@ import { fileURLToPath } from "node:url";
 import { adapterFactories } from "../../../src/adapters/registry";
 import { getEthenaDeploymentNodeIds } from "../../../src/adapters/ethena/deployments";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
-import { putJsonToBlob } from "../../../api/exposure/blob";
-import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
-
 import {
   cloneSnapshotWithRootId,
   resolveFixtureOutputPath,
@@ -18,8 +15,6 @@ const serverDir = resolve(here, "..", "..", "..");
 
 export const run = async (argv: string[]): Promise<void> => {
   const root = serverDir;
-  const shouldUpload = argv.includes("--upload");
-
   const persistSnapshot = async (rootNodeId: string, snapshot: unknown) => {
     const outPath = resolveFixtureOutputPath(
       root,
@@ -29,10 +24,6 @@ export const run = async (argv: string[]): Promise<void> => {
     );
 
     await writeJsonFile(outPath, snapshot);
-
-    if (shouldUpload) {
-      await putJsonToBlob(graphSnapshotBlobPath(rootNodeId), snapshot);
-    }
   };
 
   const draftGraphs = await buildDraftGraphsByAsset([adapterFactories.ethena]);

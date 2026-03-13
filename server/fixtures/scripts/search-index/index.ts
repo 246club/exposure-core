@@ -2,8 +2,6 @@ import { readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { putJsonToBlob } from "../../../api/exposure/blob";
-import { searchIndexBlobPath } from "../../../api/exposure/paths";
 import {
   buildSearchIndexFromProtocolGroups,
   type GraphSnapshotGroup,
@@ -45,12 +43,6 @@ const main = async (): Promise<void> => {
   const deduped = await collectSearchIndexEntries(outputDir);
 
   await writeJsonFile(outPath, deduped);
-
-  const shouldUpload = argv.includes("--upload");
-
-  if (shouldUpload) {
-    await putJsonToBlob(searchIndexBlobPath(), deduped);
-  }
 };
 
 void main();
