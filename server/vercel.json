@@ -5,5 +5,8 @@
       "path": "/api/cron/generate-graphs",
       "schedule": "0 0,8,16 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": false
+  }
 }
