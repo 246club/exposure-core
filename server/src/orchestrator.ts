@@ -1,5 +1,8 @@
 import { GraphStore } from "./core/graph";
-import { adapterFactories } from "./adapters/registry";
+import {
+  adapterFactories,
+  shouldSkipAdapterFactory,
+} from "./adapters/registry";
 import type { AdapterFactory } from "./adapters/registry";
 import type { AnyAdapter } from "./adapters/types";
 
@@ -37,6 +40,8 @@ const runAdapterFactory = async (
   factory: AdapterFactory,
   storesByAsset: Map<string, GraphStore>,
 ): Promise<void> => {
+  if (shouldSkipAdapterFactory(factory)) return;
+
   const adapter = factory();
 
   await runAdapter(adapter, storesByAsset);
