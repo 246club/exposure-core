@@ -5,9 +5,6 @@ import { adapterFactories } from "../../../src/adapters/registry";
 import { getGauntletDeploymentNodeIds } from "../../../src/adapters/gauntlet/deployments";
 import type { GraphSnapshot } from "../../../src/types";
 import { buildDraftGraphsByAsset } from "../../../src/orchestrator";
-import { putJsonToBlob } from "../../../api/exposure/blob";
-import { graphSnapshotBlobPath } from "../../../api/exposure/paths";
-
 import {
   cloneSnapshotWithRootId,
   resolveFixtureOutputPath,
@@ -19,8 +16,6 @@ const serverDir = resolve(here, "..", "..", "..");
 
 export const run = async (argv: string[]): Promise<void> => {
   const root = serverDir;
-  const shouldUpload = argv.includes("--upload");
-
   const draftGraphs = await buildDraftGraphsByAsset([
     adapterFactories.gauntlet,
   ]);
@@ -45,10 +40,6 @@ export const run = async (argv: string[]): Promise<void> => {
       );
 
       await writeJsonFile(outPath, payload);
-
-      if (shouldUpload) {
-        await putJsonToBlob(graphSnapshotBlobPath(nextRootId), payload);
-      }
     };
 
     const deploymentNodeIds = getGauntletDeploymentNodeIds();
