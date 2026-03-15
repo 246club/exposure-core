@@ -3,7 +3,7 @@ import {
   processComplexAppItem,
   processComplexProtocolItem,
 } from "../../resolvers/debank/debankResolver";
-import { toSlug } from "../../utils";
+import { hasDebankAccessKey, toSlug } from "../../utils";
 import {
   buildVaultBaseUrl,
   buildVaultLocationTokensUrl,
@@ -41,8 +41,6 @@ const toAmountString = (navUsd: number): string => {
 };
 
 const MIDAS_VAULT_CONCURRENCY = 4;
-const hasDebankAccessKey = (): boolean =>
-  Boolean(process.env.DEBANK_ACCESS_KEY);
 
 const mapWithConcurrency = async <T, R>(
   items: readonly T[],

@@ -13,6 +13,10 @@ export const scaleByDecimals = (value: number, decimals: number): number => {
   return value / 10 ** decimals;
 };
 
+export const hasDebankAccessKey = (): boolean => {
+  return Boolean(process.env.DEBANK_ACCESS_KEY);
+};
+
 // Canonicalize chain identifiers so node IDs stay stable across data sources.
 // Example: "ethereum", "mainnet", "eth" -> "eth".
 export const normalizeChain = (value: string): string => {
