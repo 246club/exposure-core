@@ -9,6 +9,8 @@ import type { Adapter } from "../types";
 import { fetchResolvMetrics, type ResolvMetrics } from "./metrics";
 
 const RESOLV_BUNDLE_ID = "220554";
+const hasDebankAccessKey = (): boolean =>
+  Boolean(process.env.DEBANK_ACCESS_KEY);
 
 const ASSET_USR = "USR" as const;
 const ASSET_WSTUSR = "wstUSR" as const;
@@ -30,10 +32,10 @@ export const createResolvAdapter = (): Adapter<
   return {
     id: "resolv",
     async fetchCatalog() {
-      const [wallets, metrics] = await Promise.all([
-        fetchBundleWallets(RESOLV_BUNDLE_ID),
-        fetchResolvMetrics(),
-      ]);
+      const metrics = await fetchResolvMetrics();
+      const wallets = hasDebankAccessKey()
+        ? await fetchBundleWallets(RESOLV_BUNDLE_ID)
+        : [];
 
       return { wallets, metrics };
     },

@@ -9,6 +9,8 @@ import type { Adapter } from "../types";
 import { fetchYuzuMetrics, type YuzuMetrics } from "./metrics";
 
 const YUZU_BUNDLE_ID = "220643";
+const hasDebankAccessKey = (): boolean =>
+  Boolean(process.env.DEBANK_ACCESS_KEY);
 
 const ASSET_YZUSD = "yzUSD" as const;
 const ASSET_SYZUSD = "sYzuUSD" as const;
@@ -34,10 +36,10 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
   return {
     id: "yuzu",
     async fetchCatalog() {
-      const [wallets, metrics] = await Promise.all([
-        fetchBundleWallets(YUZU_BUNDLE_ID),
-        fetchYuzuMetrics(),
-      ]);
+      const metrics = await fetchYuzuMetrics();
+      const wallets = hasDebankAccessKey()
+        ? await fetchBundleWallets(YUZU_BUNDLE_ID)
+        : [];
 
       return { wallets, metrics };
     },

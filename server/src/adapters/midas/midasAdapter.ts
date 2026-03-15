@@ -41,6 +41,8 @@ const toAmountString = (navUsd: number): string => {
 };
 
 const MIDAS_VAULT_CONCURRENCY = 4;
+const hasDebankAccessKey = (): boolean =>
+  Boolean(process.env.DEBANK_ACCESS_KEY);
 
 const mapWithConcurrency = async <T, R>(
   items: readonly T[],
@@ -369,6 +371,7 @@ export const createMidasAdapter = (): Adapter<
           edges.push(this.buildEdge(root, allocationNode, allocation));
         } else if (
           allocation.link &&
+          hasDebankAccessKey() &&
           (allocation.linkTitle === "Debank" ||
             allocation.link.startsWith("https://debank.com/profile"))
         ) {
