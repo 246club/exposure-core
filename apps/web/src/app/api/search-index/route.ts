@@ -1,45 +1,42 @@
 import { NextResponse } from "next/server";
 import { readFile, stat } from "node:fs/promises";
 
+import { SNAPSHOT_TIME_HEADER } from "@/constants";
 import { resolveRepoPathFromWebCwd } from "@/lib/repoPaths";
 import { getBlobUploadedAt, tryHeadBlobUrl } from "@/lib/vercelBlob";
 
 export const runtime = "nodejs";
 
 const SEARCH_INDEX_BLOB_PATH = "exposure/search-index.json";
-const SNAPSHOT_TIME_HEADER = "x-exposure-snapshot-at";
+const SEARCH_INDEX_FIXTURES_PATH = resolveRepoPathFromWebCwd(
+  "server",
+  "fixtures",
+  "output",
+  "search-index.json",
+);
 
-export async function HEAD(): Promise<Response> {
+const getSnapshotTime = async (): Promise<Date | null> => {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const fixturesPath = resolveRepoPathFromWebCwd(
-        "server",
-        "fixtures",
-        "output",
-        "search-index.json",
-      );
-      const fixturesStat = await stat(fixturesPath);
-
-      return new Response(null, {
-        status: 200,
-        headers: {
-          [SNAPSHOT_TIME_HEADER]: fixturesStat.mtime.toISOString(),
-        },
-      });
+      return (await stat(SEARCH_INDEX_FIXTURES_PATH)).mtime;
     } catch {
-      return new Response(null, { status: 404 });
+      return null;
     }
   }
 
-  const uploadedAt = await getBlobUploadedAt(SEARCH_INDEX_BLOB_PATH);
-  if (!uploadedAt) {
+  return getBlobUploadedAt(SEARCH_INDEX_BLOB_PATH);
+};
+
+export async function HEAD(): Promise<Response> {
+  const snapshotTime = await getSnapshotTime();
+  if (!snapshotTime) {
     return new Response(null, { status: 404 });
   }
 
   return new Response(null, {
     status: 200,
     headers: {
-      [SNAPSHOT_TIME_HEADER]: uploadedAt.toISOString(),
+      [SNAPSHOT_TIME_HEADER]: snapshotTime.toISOString(),
     },
   });
 }
@@ -49,14 +46,7 @@ export async function GET(): Promise<Response> {
     // Local/dev path: prefer the repo-level generated fixtures index so it stays
     // in sync with adapters without requiring manual updates under /public.
     try {
-      const fixturesPath = resolveRepoPathFromWebCwd(
-        "server",
-        "fixtures",
-        "output",
-        "search-index.json",
-      );
-
-      const raw = await readFile(fixturesPath, "utf8");
+      const raw = await readFile(SEARCH_INDEX_FIXTURES_PATH, "utf8");
       const json = JSON.parse(raw) as unknown;
       return NextResponse.json(json);
     } catch {

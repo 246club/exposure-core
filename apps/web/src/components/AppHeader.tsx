@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { type SearchIndexEntry } from "@/constants";
+import { SNAPSHOT_TIME_HEADER, type SearchIndexEntry } from "@/constants";
 import {
   hasProtocolLogo,
   getProtocolLogoPath,
@@ -102,7 +102,7 @@ export function AppHeader({
         });
         if (!response.ok) return;
 
-        const rawSnapshotTime = response.headers.get("x-exposure-snapshot-at");
+        const rawSnapshotTime = response.headers.get(SNAPSHOT_TIME_HEADER);
         if (!rawSnapshotTime) return;
 
         const snapshotDate = new Date(rawSnapshotTime);
@@ -120,6 +120,8 @@ export function AppHeader({
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
+
+        console.error("Failed to load snapshot time:", error);
       }
     };
 
