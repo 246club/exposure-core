@@ -5,6 +5,7 @@ import {
   processTokenBalance,
 } from "../../resolvers/debank/debankResolver";
 import { fetchBundleWallets } from "../../resolvers/debank/fetcher";
+import { hasDebankAccessKey } from "../../utils";
 import type { Adapter } from "../types";
 import { fetchYuzuMetrics, type YuzuMetrics } from "./metrics";
 
@@ -35,7 +36,9 @@ export const createYuzuAdapter = (): Adapter<YuzuCatalog, YuzuAllocation> => {
     id: "yuzu",
     async fetchCatalog() {
       const [wallets, metrics] = await Promise.all([
-        fetchBundleWallets(YUZU_BUNDLE_ID),
+        hasDebankAccessKey()
+          ? fetchBundleWallets(YUZU_BUNDLE_ID)
+          : Promise.resolve<string[]>([]),
         fetchYuzuMetrics(),
       ]);
 

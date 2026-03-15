@@ -39,5 +39,7 @@ pnpm dev:web
 
 Notes:
 
+- `apps/web` now uses the standard Next.js `dev` / `build` / `start` scripts; environment selection comes from Next/Vercel defaults instead of `node --env-file` flags.
+- If the web app needs local env vars, copy `apps/web/.env.example` to `apps/web/.env.local` and fill it in.
 - Debank is mocked in local fixture scripts (no paid Debank calls). Dune is real (needs `DUNE_API_KEY`).
 - If you skip fixture generation, the web API routes will not find `server/fixtures/output/*`.

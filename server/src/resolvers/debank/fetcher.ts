@@ -26,6 +26,7 @@ type PortfolioItemName =
 export interface TokenObject {
   id: string;
   chain: string;
+  app_id?: string;
 
   name: string | null;
   symbol: string | null;
@@ -124,7 +125,7 @@ export interface AppProtocolItem {
   name: string | null;
   logo_url: string | null;
   site_url: string;
-  is_support_portfolio?: boolean;
+  has_supported_portfolio?: boolean;
   is_visible?: boolean;
   update_at?: number | null;
   create_at?: number | null;
@@ -133,6 +134,7 @@ export interface AppProtocolItem {
 
 const DEFAULT_BASE_URL = "https://pro-openapi.debank.com/v1";
 const COMPLEX_PROTOCOL_LIST_PATH = `${DEFAULT_BASE_URL}/user/complex_protocol_list`;
+const ALL_COMPLEX_PROTOCOL_LIST_PATH = `${DEFAULT_BASE_URL}/user/all_complex_protocol_list`;
 const COMPLEX_APP_LIST_PATH = `${DEFAULT_BASE_URL}/user/complex_app_list`;
 const ALL_TOKEN_LIST_PATH = `${DEFAULT_BASE_URL}/user/all_token_list`;
 const BUNDLE_API_BASE_URL = "https://api.debank.com";
@@ -162,7 +164,7 @@ const fetchDebankData = async <T>(url: URL): Promise<T> => {
 
   if (!response.ok) {
     throw new Error(
-      `Debank API error: ${response.status} ${response.statusText}`
+      `Debank API error: ${response.status} ${response.statusText}`,
     );
   }
 
@@ -172,15 +174,18 @@ const fetchDebankData = async <T>(url: URL): Promise<T> => {
 };
 
 export const fetchComplexProtocolList = async (
-  walletAddress: string
+  walletAddress: string,
 ): Promise<ComplexProtocolItem[]> => {
-  const url = buildDebankUrl(COMPLEX_PROTOCOL_LIST_PATH, walletAddress);
+  const path = process.env.DEBANK_ACCESS_KEY
+    ? ALL_COMPLEX_PROTOCOL_LIST_PATH
+    : COMPLEX_PROTOCOL_LIST_PATH;
+  const url = buildDebankUrl(path, walletAddress);
 
   return fetchDebankData<ComplexProtocolItem[]>(url);
 };
 
 export const fetchTokenList = async (
-  walletAddress: string
+  walletAddress: string,
 ): Promise<TokenObject[]> => {
   const url = buildDebankUrl(ALL_TOKEN_LIST_PATH, walletAddress);
 
@@ -188,7 +193,7 @@ export const fetchTokenList = async (
 };
 
 export const fetchComplexAppList = async (
-  walletAddress: string
+  walletAddress: string,
 ): Promise<AppProtocolItem[]> => {
   const url = buildDebankUrl(COMPLEX_APP_LIST_PATH, walletAddress);
 
@@ -201,12 +206,12 @@ export interface BundleWallet {
 }
 
 export const fetchBundleWallets = async (
-  bundleId: string
+  bundleId: string,
 ): Promise<string[]> => {
   const url = new URL(BUNDLE_PATH);
   url.searchParams.set("id", bundleId);
 
   const data = await fetchDebankData<BundleWallet[]>(url);
-  
+
   return data.map((wallet) => wallet.id);
 };

@@ -4,7 +4,7 @@ import {
   processComplexProtocolItem,
 } from "../../resolvers/debank/debankResolver";
 import { fetchBundleWallets } from "../../resolvers/debank/fetcher";
-import { roundToTwoDecimals } from "../../utils";
+import { hasDebankAccessKey, roundToTwoDecimals } from "../../utils";
 import type { Adapter } from "../types";
 
 const INFINIFI_BUNDLE_ID = "220816";
@@ -13,7 +13,6 @@ const INFINIFI_API_URL = "https://eth-api.infinifi.xyz/api/protocol/data";
 const INFINIFI_CHAIN = "eth" as const;
 const INFINIFI_PROTOCOL = "infinifi" as const;
 const MIN_IDLE_THRESHOLD = 0.01;
-
 const ASSET_IUSD = "iUSD" as const;
 const ASSET_SIUSD = "siUSD" as const;
 
@@ -194,7 +193,9 @@ export const createInfinifiAdapter = (): Adapter<
     async fetchCatalog() {
       const [apiResponse, wallets] = await Promise.all([
         fetch(INFINIFI_API_URL),
-        fetchBundleWallets(INFINIFI_BUNDLE_ID),
+        hasDebankAccessKey()
+          ? fetchBundleWallets(INFINIFI_BUNDLE_ID)
+          : Promise.resolve<string[]>([]),
       ]);
 
       if (!apiResponse.ok) {

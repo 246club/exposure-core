@@ -5,6 +5,7 @@ import {
   processTokenBalance,
 } from "../../resolvers/debank/debankResolver";
 import { fetchBundleWallets } from "../../resolvers/debank/fetcher";
+import { hasDebankAccessKey } from "../../utils";
 import type { Adapter } from "../types";
 import { fetchResolvMetrics, type ResolvMetrics } from "./metrics";
 
@@ -31,7 +32,9 @@ export const createResolvAdapter = (): Adapter<
     id: "resolv",
     async fetchCatalog() {
       const [wallets, metrics] = await Promise.all([
-        fetchBundleWallets(RESOLV_BUNDLE_ID),
+        hasDebankAccessKey()
+          ? fetchBundleWallets(RESOLV_BUNDLE_ID)
+          : Promise.resolve<string[]>([]),
         fetchResolvMetrics(),
       ]);
 

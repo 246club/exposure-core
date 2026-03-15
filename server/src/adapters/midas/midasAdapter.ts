@@ -3,7 +3,7 @@ import {
   processComplexAppItem,
   processComplexProtocolItem,
 } from "../../resolvers/debank/debankResolver";
-import { toSlug } from "../../utils";
+import { hasDebankAccessKey, toSlug } from "../../utils";
 import {
   buildVaultBaseUrl,
   buildVaultLocationTokensUrl,
@@ -369,6 +369,7 @@ export const createMidasAdapter = (): Adapter<
           edges.push(this.buildEdge(root, allocationNode, allocation));
         } else if (
           allocation.link &&
+          hasDebankAccessKey() &&
           (allocation.linkTitle === "Debank" ||
             allocation.link.startsWith("https://debank.com/profile"))
         ) {
