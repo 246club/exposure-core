@@ -18,6 +18,7 @@ import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
+import { getDirectChildNodes } from "@/lib/graph";
 import {
   compactBreadcrumbs,
   limitBreadcrumbHistory,
@@ -140,6 +141,10 @@ export default function AssetPage() {
           logoKeys: activeRootEntry.logoKeys ?? infoNode.logoKeys,
         }
       : infoNode;
+  const headerChildren = useMemo(() => {
+    if (!graphData || !headerNode) return [];
+    return getDirectChildNodes(headerNode, graphData.nodes, graphData.edges);
+  }, [graphData, headerNode]);
 
   useEffect(() => {
     const load = async () => {
@@ -597,6 +602,7 @@ export default function AssetPage() {
             {headerNode && (
               <RootNodeHeader
                 node={headerNode}
+                children={headerChildren}
                 tvl={tvl}
                 onBack={
                   !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
