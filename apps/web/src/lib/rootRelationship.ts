@@ -26,7 +26,7 @@ const EULER_EVK_RELATIONSHIP: RootRelationshipSemantics = {
 };
 
 const YIELD_RELATIONSHIP: RootRelationshipSemantics = {
-  rootBadge: "Deployed for yield",
+  rootBadge: "Allocated to strategies",
   childBadge: "Strategy",
 };
 
