@@ -396,33 +396,88 @@ const placeOthersTileAtBottomRight = (
   const othersNode = children.find((child) => child.data.isOthers);
   if (!othersNode) return root;
 
-  const bottomRightNode = children.reduce((best, child) => {
-    if (!best) return child;
-    if (child.x1 > best.x1) return child;
-    if (child.x1 < best.x1) return best;
-    if (child.y1 > best.y1) return child;
-    if (child.y1 < best.y1) return best;
-    return child.x0 > best.x0 ? child : best;
-  }, children[0]);
+  const width = Math.max(0, Math.round(root.x1 - root.x0));
+  const height = Math.max(0, Math.round(root.y1 - root.y0));
+  const remainingItems = children.filter((child) => child !== othersNode);
+  if (width === 0 || height === 0 || remainingItems.length === 0) return root;
 
-  if (!bottomRightNode || bottomRightNode === othersNode) return root;
+  const totalValue = children.reduce(
+    (sum, child) => sum + Math.max(0, child.value || 0),
+    0,
+  );
+  const othersValue = Math.max(0, othersNode.value || 0);
+  if (totalValue <= 0 || othersValue <= 0 || othersValue >= totalValue) {
+    return root;
+  }
 
-  const nextBounds = {
-    x0: bottomRightNode.x0,
-    x1: bottomRightNode.x1,
-    y0: bottomRightNode.y0,
-    y1: bottomRightNode.y1,
-  };
+  const othersArea = (othersValue / totalValue) * width * height;
+  const rightColumnWidth = Math.max(
+    1,
+    Math.min(width - 1, Math.round(othersArea / height)),
+  );
+  const bottomRowHeight = Math.max(
+    1,
+    Math.min(height - 1, Math.round(othersArea / width)),
+  );
+  const rightColumnAspect = Math.max(
+    rightColumnWidth / height,
+    height / rightColumnWidth,
+  );
+  const bottomRowAspect = Math.max(
+    width / bottomRowHeight,
+    bottomRowHeight / width,
+  );
+  const useRightColumn = rightColumnAspect <= bottomRowAspect;
 
-  bottomRightNode.x0 = othersNode.x0;
-  bottomRightNode.x1 = othersNode.x1;
-  bottomRightNode.y0 = othersNode.y0;
-  bottomRightNode.y1 = othersNode.y1;
+  const othersBounds = useRightColumn
+    ? {
+        x0: root.x1 - rightColumnWidth,
+        x1: root.x1,
+        y0: root.y0,
+        y1: root.y1,
+      }
+    : {
+        x0: root.x0,
+        x1: root.x1,
+        y0: root.y1 - bottomRowHeight,
+        y1: root.y1,
+      };
+  const remainingWidth = useRightColumn ? width - rightColumnWidth : width;
+  const remainingHeight = useRightColumn ? height : height - bottomRowHeight;
 
-  othersNode.x0 = nextBounds.x0;
-  othersNode.x1 = nextBounds.x1;
-  othersNode.y0 = nextBounds.y0;
-  othersNode.y1 = nextBounds.y1;
+  if (remainingWidth <= 0 || remainingHeight <= 0) return root;
+
+  const remainingHierarchy = d3
+    .hierarchy<{ children: TreemapTileDatum[] } | TreemapTileDatum>({
+      children: remainingItems.map((child) => child.data),
+    })
+    .sum((d) => ("children" in d ? 0 : d.value))
+    .sort((a, b) => (b.value || 0) - (a.value || 0));
+  const remainingRoot = d3
+    .treemap<{ children: TreemapTileDatum[] } | TreemapTileDatum>()
+    .size([remainingWidth, remainingHeight])
+    .padding(0)
+    .round(true)(remainingHierarchy);
+  const layoutByNodeId = new Map(
+    (remainingRoot.children || []).map((child) => [
+      (child.data as TreemapTileDatum).nodeId,
+      child,
+    ]),
+  );
+
+  for (const child of remainingItems) {
+    const layoutNode = layoutByNodeId.get(child.data.nodeId);
+    if (!layoutNode) continue;
+    child.x0 = root.x0 + layoutNode.x0;
+    child.x1 = root.x0 + layoutNode.x1;
+    child.y0 = root.y0 + layoutNode.y0;
+    child.y1 = root.y0 + layoutNode.y1;
+  }
+
+  othersNode.x0 = othersBounds.x0;
+  othersNode.x1 = othersBounds.x1;
+  othersNode.y0 = othersBounds.y0;
+  othersNode.y1 = othersBounds.y1;
 
   return root;
 };
