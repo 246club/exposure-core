@@ -6,6 +6,7 @@ import { resolveRepoPathFromWebCwd } from "@/lib/repoPaths";
 import { getBlobUploadedAt, tryHeadBlobUrl } from "@/lib/vercelBlob";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const SEARCH_INDEX_BLOB_PATH = "exposure/search-index.json";
 const SEARCH_INDEX_FIXTURES_PATH = resolveRepoPathFromWebCwd(
@@ -16,15 +17,16 @@ const SEARCH_INDEX_FIXTURES_PATH = resolveRepoPathFromWebCwd(
 );
 
 const getSnapshotTime = async (): Promise<Date | null> => {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    try {
-      return (await stat(SEARCH_INDEX_FIXTURES_PATH)).mtime;
-    } catch {
-      return null;
-    }
+  const uploadedAt = await getBlobUploadedAt(SEARCH_INDEX_BLOB_PATH);
+  if (uploadedAt) {
+    return uploadedAt;
   }
 
-  return getBlobUploadedAt(SEARCH_INDEX_BLOB_PATH);
+  try {
+    return (await stat(SEARCH_INDEX_FIXTURES_PATH)).mtime;
+  } catch {
+    return null;
+  }
 };
 
 export async function HEAD(): Promise<Response> {
@@ -36,6 +38,7 @@ export async function HEAD(): Promise<Response> {
   return new Response(null, {
     status: 200,
     headers: {
+      "cache-control": "no-store",
       [SNAPSHOT_TIME_HEADER]: snapshotTime.toISOString(),
     },
   });
