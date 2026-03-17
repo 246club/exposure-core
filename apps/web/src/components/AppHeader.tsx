@@ -97,6 +97,7 @@ export function AppHeader({
     const loadSnapshotTime = async () => {
       try {
         const response = await fetch("/api/search-index", {
+          cache: "no-store",
           method: "HEAD",
           signal: controller.signal,
         });
@@ -108,13 +109,17 @@ export function AppHeader({
         const snapshotDate = new Date(rawSnapshotTime);
         if (Number.isNaN(snapshotDate.getTime())) return;
 
+        const year = snapshotDate.getUTCFullYear();
+        const month = String(snapshotDate.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(snapshotDate.getUTCDate()).padStart(2, "0");
+
         setSnapshotTime(
-          snapshotDate.toLocaleTimeString("en-GB", {
+          `${year}-${month}-${day} ${snapshotDate.toLocaleTimeString("en-GB", {
             hour: "2-digit",
             minute: "2-digit",
             timeZone: "UTC",
             hour12: false,
-          }) + " UTC",
+          })} UTC`,
         );
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
