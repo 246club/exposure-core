@@ -39,8 +39,9 @@ import {
   type BreadcrumbItem,
 } from "@/lib/breadcrumbs";
 import Image from "next/image";
+import { formatChainLabel, formatUiLabel } from "@/utils/formatters";
 
-const shortChainLabel = (v: string): string => v.toUpperCase();
+const shortChainLabel = (v: string): string => formatChainLabel(v);
 
 const buildChainLabel = (
   chains: { chain: string; entry: SearchIndexEntry; tvlUsd: number | null }[],
@@ -231,7 +232,7 @@ export default function AssetPage() {
       { label: "All Protocols", value: "all" },
       ...Array.from(set)
         .sort()
-        .map((p) => ({ label: p, value: p })),
+        .map((p) => ({ label: formatUiLabel(p), value: p })),
     ];
   }, [dynamicIndex]);
 
@@ -241,7 +242,7 @@ export default function AssetPage() {
       { label: "Any Chain", value: "all" },
       ...Array.from(set)
         .sort()
-        .map((c) => ({ label: c, value: c })),
+        .map((c) => ({ label: formatChainLabel(c), value: c })),
     ];
   }, [dynamicIndex]);
 
@@ -328,7 +329,7 @@ export default function AssetPage() {
       const entry = dynamicIndex.find(
         (e) => canonicalizeNodeId(e.id) === canonicalizeNodeId(histId),
       );
-      const label = entry ? entry.name.toUpperCase() : histId.toUpperCase();
+      const label = entry ? entry.name : histId;
       const nextHistory = limitBreadcrumbHistory(history.slice(0, idx));
       const querySuffix =
         nextHistory.length > 0 ? `?history=${nextHistory.join(",")}` : "";
@@ -341,7 +342,7 @@ export default function AssetPage() {
 
     if (rootNode) {
       items.push({
-        label: rootNode.name.toUpperCase(),
+        label: rootNode.name,
         current: isAtAssetRoot && !isOthersView,
         onClick: isAtAssetRoot ? undefined : () => resetToRoot(),
       });
@@ -352,7 +353,7 @@ export default function AssetPage() {
         const node = nodesById.get(nodeId);
         if (node)
           items.push({
-            label: node.name.toUpperCase(),
+            label: node.name,
             onClick: () => jumpToFocus(node.id),
           });
       });
@@ -363,9 +364,9 @@ export default function AssetPage() {
       selectedNode.id !== rootNode?.id &&
       !isOthersView
     ) {
-      items.push({ label: selectedNode.name.toUpperCase(), current: true });
+      items.push({ label: selectedNode.name, current: true });
     }
-    if (isOthersView) items.push({ label: "OTHERS", current: true });
+    if (isOthersView) items.push({ label: "Others", current: true });
     return compactBreadcrumbs(items);
   }, [
     history,
@@ -389,7 +390,7 @@ export default function AssetPage() {
   const typeBadgeClassName = (() => {
     if (!activeNodeTypeLabel) return "";
     const base =
-      "px-2.5 py-1 border text-[8px] uppercase font-black tracking-[0.22em] rounded-full";
+      "px-2.5 py-1 border text-[8px] font-semibold tracking-[0.05em] rounded-full";
     switch (activeNodeTypeCategory) {
       case "yield-vault":
         return `${base} bg-emerald-50 border-emerald-200 text-emerald-700`;
@@ -406,7 +407,7 @@ export default function AssetPage() {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-white gap-6">
         <Loader2 className="w-10 h-10 text-black animate-spin" />
-        <p className="text-black font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse">
+        <p className="text-black font-mono text-[10px] tracking-[0.08em] animate-pulse">
           Establishing Data Connection
         </p>
       </div>
@@ -417,15 +418,15 @@ export default function AssetPage() {
     return (
       <div className="p-8 text-center text-black h-screen flex flex-col items-center justify-center bg-[#E6EBF8]">
         <div className="bg-white p-12 rounded-sm border border-black max-w-md w-full shadow-2xl">
-          <h2 className="text-lg font-bold text-black mb-4 tracking-tight uppercase">
+          <h2 className="text-lg font-semibold text-black mb-4 tracking-[0.03em]">
             Registry Access Denied
           </h2>
           <p className="text-black/60 mb-10 text-xs leading-relaxed font-mono">
-            ID_{id.toUpperCase()} not found in the indexed distribution network.
+            {id} was not found in the indexed distribution network.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center justify-center w-full px-8 py-4 bg-black text-white font-bold text-[10px] uppercase tracking-[0.2em] rounded-sm hover:bg-black/80 transition-colors"
+            className="inline-flex items-center justify-center w-full px-8 py-4 bg-black text-white font-semibold text-[10px] tracking-[0.05em] rounded-sm hover:bg-black/80 transition-colors"
           >
             Return to Registry
           </Link>
@@ -456,48 +457,53 @@ export default function AssetPage() {
         buildChainLabel={buildChainLabel}
       />
 
-      <div className="bg-black/[0.02] border-b border-black/5 px-10 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-12">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-4">
-              <h1 className="text-lg font-bold text-black tracking-tight uppercase">
-                {pageTitle}
-              </h1>
-              {activeNodeTypeLabel && (
-                <div className={typeBadgeClassName} title={activeNodeTypeLabel}>
-                  {activeNodeTypeLabel}
-                </div>
-              )}
-              {chainLogoPath && (
-                <Image
-                  src={chainLogoPath}
-                  alt={chain || ""}
-                  width={16}
-                  height={16}
-                  className="object-contain"
-                />
-              )}
+      <div className="border-b border-black/5 bg-black/[0.02]">
+        <div className="app-content-frame flex items-center justify-between px-10 py-4">
+          <div className="flex items-center gap-12">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-4">
+                <h1 className="text-lg font-semibold text-black tracking-[0.03em]">
+                  {pageTitle}
+                </h1>
+                {activeNodeTypeLabel && (
+                  <div
+                    className={typeBadgeClassName}
+                    title={activeNodeTypeLabel}
+                  >
+                    {activeNodeTypeLabel}
+                  </div>
+                )}
+                {chainLogoPath && (
+                  <Image
+                    src={chainLogoPath}
+                    alt={chain || ""}
+                    width={16}
+                    height={16}
+                    className="object-contain"
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          {origin && (
-            <Link
-              href={`/asset/${encodeURIComponent(origin)}`}
-              className="flex items-center gap-2 px-3 py-2 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded hover:bg-black/80 transition-all shadow-lg shadow-black/10 group"
-            >
-              <RotateCcw className="w-3 h-3 group-hover:rotate-[-45deg] transition-transform" />{" "}
-              Reset to Origin
-            </Link>
-          )}
-          <button className="p-2 border border-black rounded hover:bg-black hover:text-white transition-all">
-            <Activity className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-4">
+            {origin && (
+              <Link
+                href={`/asset/${encodeURIComponent(origin)}`}
+                className="flex items-center gap-2 px-3 py-2 bg-black text-white text-[9px] font-semibold tracking-[0.05em] rounded hover:bg-black/80 transition-all shadow-lg shadow-black/10 group"
+              >
+                <RotateCcw className="w-3 h-3 group-hover:rotate-[-45deg] transition-transform" />{" "}
+                Reset to Origin
+              </Link>
+            )}
+            <button className="p-2 border border-black rounded hover:bg-black hover:text-white transition-all">
+              <Activity className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <main className="flex-grow flex flex-col min-h-0 px-6 md:px-24 lg:px-40 py-12">
+      <main className="app-content-frame flex-grow flex flex-col min-h-0 px-6 py-12">
         <div className="flex min-h-0 flex-grow flex-col gap-4">
           <BreadcrumbTrail items={breadcrumbs} />
 
