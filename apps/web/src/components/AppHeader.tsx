@@ -336,14 +336,16 @@ export function AppHeader({
           )}
         </div>
 
-        <button
-          onClick={onRandom}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-black/10 hover:border-black/30 bg-white text-black transition-all duration-200 text-[10px] font-black uppercase tracking-widest active:scale-95"
-          title="Pick a random asset"
-        >
-          <Dices className="w-3.5 h-3.5" />
-          <span className="hidden md:block">Random</span>
-        </button>
+        {onRandom ? (
+          <button
+            onClick={onRandom}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-black/10 hover:border-black/30 bg-white text-black transition-all duration-200 text-[10px] font-black uppercase tracking-widest active:scale-95"
+            title="Pick a random asset"
+          >
+            <Dices className="w-3.5 h-3.5" />
+            <span className="hidden md:block">Random</span>
+          </button>
+        ) : null}
 
         {/* Filters Button & Dropdown */}
         <div className="relative" ref={filterDropdownRef}>
