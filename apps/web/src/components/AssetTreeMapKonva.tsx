@@ -120,7 +120,7 @@ interface AssetTreeMapKonvaProps {
 }
 
 const TILE_STYLE = {
-  fontFamily: "'JetBrains Mono', monospace",
+  fontFamily: "'Geist Mono', monospace",
   fontSize: 11,
   letterSpacing: -0.3,
   colors: {

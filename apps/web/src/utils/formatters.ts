@@ -50,9 +50,9 @@ export const formatUiLabel = (value: string | undefined): string => {
   if (!value) return "";
 
   return value
-    .split(/([\s/:-]+)/)
+    .split(/([\s/:-_]+)/)
     .map((part) => {
-      if (!part || /^[\s/:-]+$/.test(part)) return part;
+      if (!part || /^[\s/:-_]+$/.test(part)) return part;
       if (part === part.toUpperCase()) return part;
       return part[0].toUpperCase() + part.slice(1);
     })
