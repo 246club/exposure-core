@@ -358,7 +358,7 @@ function HomeInner() {
   const requestedAsset = useMemo(() => {
     if (!activeAssetId) return null;
     return {
-      id: canonicalizeNodeId(activeAssetId),
+      id: activeAssetId,
       chain: activeAssetChain?.trim().toLowerCase() || "global",
       protocol: activeAssetProtocol
         ? canonicalizeProtocolToken(activeAssetProtocol)
@@ -367,10 +367,6 @@ function HomeInner() {
       nodeId: canonicalizeNodeId(activeAssetId),
       displayName: activeAsset?.displayName,
       logoKeys: activeAsset?.logoKeys,
-      apy: activeAsset?.apy,
-      curator: activeAsset?.curator,
-      tvlUsd: activeAsset?.tvlUsd,
-      typeLabel: activeAsset?.typeLabel,
     } satisfies SearchIndexEntry;
   }, [activeAsset, activeAssetChain, activeAssetId, activeAssetProtocol]);
 
