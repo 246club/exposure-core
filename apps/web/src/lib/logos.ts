@@ -45,6 +45,51 @@ export function getChainLogoPath(chain: string): string {
   return `/logos/chains/${normalizeChainKey(chain)}.svg`;
 }
 
+const CURATOR_LOGO_FILES: Record<string, string> = {
+  alphaping: "alphaping.svg",
+  "9summits": "9summits.svg",
+  alphagrowth: "alphagrowth.svg",
+  architect: "architect.svg",
+  "anthias-labs": "anthias-labs.svg",
+  apostro: "apostro.svg",
+  api3: "api3.svg",
+  "apollo-crypto": "apollo-crypto.svg",
+  "august-digital": "august-digital.svg",
+  avantgarde: "avantgarde.svg",
+  "b-protocol": "b-protocol.svg",
+  "block-analitica": "block-analitica.svg",
+  clearstar: "clearstar.svg",
+  "cozy-finance": "cozy-finance.svg",
+  edgecapital: "edgecapital.svg",
+  felix: "felix.svg",
+  hakutora: "hakutora.svg",
+  hyperithm: "hyperithm.svg",
+  "k3-capital": "k3-capital.svg",
+  keyrock: "keyrock.svg",
+  keyring: "keyring.svg",
+  kpk: "kpk.svg",
+  "mev-capital": "mev-capital.svg",
+  pangolins: "pangolins.svg",
+  "re7-labs": "re7-labs.svg",
+  sentora: "sentora.svg",
+  sparkdao: "sparkdao.svg",
+  "stake-dao": "stake-dao.svg",
+  "steakhouse-financial": "steakhouse-financial.svg",
+  superstate: "superstate.svg",
+  singularv: "singularv.svg",
+  telosc: "telosc.svg",
+  "tulipa-capital": "tulipa-capital.svg",
+  usual: "usual.svg",
+  yearn: "yearn.svg",
+  yieldnest: "yieldnest.svg",
+  zerolend: "zerolend.svg",
+};
+
+export function getCuratorLogoPath(curatorKey: string): string {
+  const fileName = CURATOR_LOGO_FILES[curatorKey];
+  return fileName ? `/logos/curators/${fileName}` : "";
+}
+
 export function getAssetLogoPath(assetId: string): string {
   if (!assetId) return "";
   const key = normalizeLogoKey(assetId);
@@ -367,6 +412,88 @@ const CHAIN_LOGO_KEYS = new Set<string>([
   "plasma",
   "uni",
 ]);
+
+const CURATOR_LOGO_KEYS = new Set<string>(Object.keys(CURATOR_LOGO_FILES));
+
+const CURATOR_FILE_KEY_BY_NORMALIZED_KEY = Object.fromEntries(
+  Object.keys(CURATOR_LOGO_FILES).map((key) => [
+    normalizeCuratorLookupKey(key),
+    key,
+  ]),
+) as Record<string, string>;
+
+const CURATOR_PROTOCOL_KEY_BY_NORMALIZED_KEY: Record<string, string> = {
+  gauntlet: "gauntlet",
+  infinifi: "infinifi",
+  resolv: "resolv",
+  sky: "sky",
+  yuzu: "yuzu",
+};
+
+const CURATOR_SPECIAL_ALIASES: Record<string, string[]> = {
+  edgecapitalultrayield: ["curator:edgecapital"],
+  edgeultrayield: ["curator:edgecapital"],
+  eulerdao: ["protocol:euler"],
+  mevcapital: ["curator:mev-capital"],
+  re7capital: ["curator:re7-labs"],
+  skymoney: ["protocol:sky"],
+};
+
+function normalizeCuratorKey(curator: string): string {
+  return curator.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeCuratorLookupKey(curator: string): string {
+  return curator
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+export function getCuratorLogos(curator?: string | null): string[] {
+  if (!curator) return [];
+
+  const paths: string[] = [];
+  const seen = new Set<string>();
+  const parts = curator
+    .split(",")
+    .map((part) => normalizeCuratorKey(part))
+    .filter(Boolean);
+
+  for (const part of parts) {
+    const normalizedPart = normalizeCuratorLookupKey(part);
+    const candidates = [...(CURATOR_SPECIAL_ALIASES[normalizedPart] ?? [])];
+    const normalizedFileKey =
+      CURATOR_FILE_KEY_BY_NORMALIZED_KEY[normalizedPart];
+    const normalizedProtocolKey =
+      CURATOR_PROTOCOL_KEY_BY_NORMALIZED_KEY[normalizedPart];
+
+    if (normalizedFileKey) {
+      candidates.push(`curator:${normalizedFileKey}`);
+    }
+
+    if (normalizedProtocolKey) {
+      candidates.push(`protocol:${normalizedProtocolKey}`);
+    }
+
+    for (const candidate of candidates) {
+      const [kind, value] = candidate.split(":", 2);
+      const path =
+        kind === "protocol"
+          ? getProtocolLogoPath(value)
+          : CURATOR_LOGO_KEYS.has(value)
+            ? getCuratorLogoPath(value)
+            : "";
+
+      if (!path || seen.has(path)) continue;
+      seen.add(path);
+      paths.push(path);
+    }
+  }
+
+  return paths;
+}
 
 export function hasProtocolLogo(protocol?: string | null): boolean {
   if (!protocol) return false;
