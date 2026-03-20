@@ -1,8 +1,8 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    "rootDir": "server/src",
-    "outDir": "server/dist",
+    "rootDir": "src",
+    "outDir": "dist",
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "es2022",
@@ -19,6 +19,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["server/src"],
-  "exclude": ["server/fixtures", "server/fixtures/scripts"]
+  "include": ["src"],
+  "exclude": ["fixtures", "fixtures/scripts"]
 }
