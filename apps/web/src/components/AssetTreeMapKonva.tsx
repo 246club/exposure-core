@@ -197,6 +197,8 @@ const SR_ONLY_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const TREEMAP_GUTTER = 1;
+
 const getTileNameText = (data: TreemapTileDatum) => {
   const isOthers = data.isOthers;
   const name = data.name || "";
@@ -228,8 +230,8 @@ const getPackedTileBounds = (
   return {
     x: startX,
     y: startY,
-    width: Math.max(0, endX - startX - 1),
-    height: Math.max(0, endY - startY - 1),
+    width: Math.max(0, endX - startX),
+    height: Math.max(0, endY - startY),
   };
 };
 
@@ -359,7 +361,9 @@ const computeNestedLayout = ({
   availW: number;
   availH: number;
 }): NestedLayout | null => {
-  const items = allocations || [];
+  const items = (allocations || []).filter(
+    (item) => Number.isFinite(item.value) && item.value > 0,
+  );
   if (
     items.length === 0 ||
     availW < TILE_STYLE.nested.minLayoutWidth ||
@@ -379,7 +383,8 @@ const computeNestedLayout = ({
   const treemap = d3
     .treemap<{ children: AllocationItem[] } | AllocationItem>()
     .size([availW, availH])
-    .padding(0)
+    .paddingInner(TREEMAP_GUTTER)
+    .paddingOuter(TREEMAP_GUTTER)
     .round(true);
 
   const root = treemap(hierarchy);
@@ -401,6 +406,12 @@ const placeOthersTileAtBottomRight = (
   const remainingItems = children.filter((child) => child !== othersNode);
   if (width === 0 || height === 0 || remainingItems.length === 0) return root;
 
+  const contentX0 = root.x0 + TREEMAP_GUTTER;
+  const contentY0 = root.y0 + TREEMAP_GUTTER;
+  const contentWidth = Math.max(0, width - TREEMAP_GUTTER * 2);
+  const contentHeight = Math.max(0, height - TREEMAP_GUTTER * 2);
+  if (contentWidth === 0 || contentHeight === 0) return root;
+
   const totalValue = children.reduce(
     (sum, child) => sum + Math.max(0, child.value || 0),
     0,
@@ -410,42 +421,47 @@ const placeOthersTileAtBottomRight = (
     return root;
   }
 
-  const othersArea = (othersValue / totalValue) * width * height;
+  const othersArea = (othersValue / totalValue) * contentWidth * contentHeight;
   const rightColumnWidth = Math.max(
     1,
-    Math.min(width - 1, Math.round(othersArea / height)),
+    Math.min(contentWidth - 1, Math.round(othersArea / contentHeight)),
   );
   const bottomRowHeight = Math.max(
     1,
-    Math.min(height - 1, Math.round(othersArea / width)),
+    Math.min(contentHeight - 1, Math.round(othersArea / contentWidth)),
   );
   const rightColumnAspect = Math.max(
-    rightColumnWidth / height,
-    height / rightColumnWidth,
+    rightColumnWidth / contentHeight,
+    contentHeight / rightColumnWidth,
   );
   const bottomRowAspect = Math.max(
-    width / bottomRowHeight,
-    bottomRowHeight / width,
+    contentWidth / bottomRowHeight,
+    bottomRowHeight / contentWidth,
   );
   const useRightColumn = rightColumnAspect <= bottomRowAspect;
 
-  const othersBounds = useRightColumn
-    ? {
-        x0: root.x1 - rightColumnWidth,
-        x1: root.x1,
-        y0: root.y0,
-        y1: root.y1,
-      }
-    : {
-        x0: root.x0,
-        x1: root.x1,
-        y0: root.y1 - bottomRowHeight,
-        y1: root.y1,
-      };
-  const remainingWidth = useRightColumn ? width - rightColumnWidth : width;
-  const remainingHeight = useRightColumn ? height : height - bottomRowHeight;
+  const remainingWidth = useRightColumn
+    ? contentWidth - rightColumnWidth - TREEMAP_GUTTER
+    : contentWidth;
+  const remainingHeight = useRightColumn
+    ? contentHeight
+    : contentHeight - bottomRowHeight - TREEMAP_GUTTER;
 
   if (remainingWidth <= 0 || remainingHeight <= 0) return root;
+
+  const othersBounds = useRightColumn
+    ? {
+        x0: contentX0 + remainingWidth + TREEMAP_GUTTER,
+        x1: contentX0 + contentWidth,
+        y0: contentY0,
+        y1: contentY0 + contentHeight,
+      }
+    : {
+        x0: contentX0,
+        x1: contentX0 + contentWidth,
+        y0: contentY0 + remainingHeight + TREEMAP_GUTTER,
+        y1: contentY0 + contentHeight,
+      };
 
   const remainingHierarchy = d3
     .hierarchy<{ children: TreemapTileDatum[] } | TreemapTileDatum>({
@@ -456,7 +472,8 @@ const placeOthersTileAtBottomRight = (
   const remainingRoot = d3
     .treemap<{ children: TreemapTileDatum[] } | TreemapTileDatum>()
     .size([remainingWidth, remainingHeight])
-    .padding(0)
+    .paddingInner(TREEMAP_GUTTER)
+    .paddingOuter(0)
     .round(true)(remainingHierarchy);
   const layoutByNodeId = new Map(
     (remainingRoot.children || []).map((child) => [
@@ -468,10 +485,10 @@ const placeOthersTileAtBottomRight = (
   for (const child of remainingItems) {
     const layoutNode = layoutByNodeId.get(child.data.nodeId);
     if (!layoutNode) continue;
-    child.x0 = root.x0 + layoutNode.x0;
-    child.x1 = root.x0 + layoutNode.x1;
-    child.y0 = root.y0 + layoutNode.y0;
-    child.y1 = root.y0 + layoutNode.y1;
+    child.x0 = contentX0 + layoutNode.x0;
+    child.x1 = contentX0 + layoutNode.x1;
+    child.y0 = contentY0 + layoutNode.y0;
+    child.y1 = contentY0 + layoutNode.y1;
   }
 
   othersNode.x0 = othersBounds.x0;
@@ -885,13 +902,17 @@ const TreemapTileKonva = React.memo(
               listening={false}
             />
 
-            {nestedLayout.children.map((n) => {
+            {nestedLayout.children.flatMap((n) => {
               const bounds = getPackedTileBounds(n.x0, n.y0, n.x1, n.y1);
               const nw = bounds.width;
               const nh = bounds.height;
               const nestedData = n.data as AllocationItem;
 
-              return (
+              if (nw <= 0 || nh <= 0) {
+                return [];
+              }
+
+              return [
                 <Group key={nestedData.id} x={bounds.x} y={bounds.y}>
                   <Rect
                     width={nw}
@@ -906,8 +927,8 @@ const TreemapTileKonva = React.memo(
                         width={nw}
                       />
                     )}
-                </Group>
-              );
+                </Group>,
+              ];
             })}
 
             {availW > 0 && (
@@ -980,8 +1001,8 @@ export function AssetTreeMapKonva({
   onHoverEnd,
 }: AssetTreeMapKonvaProps) {
   const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const stageWidth = Math.max(0, Math.floor(width));
-  const stageHeight = Math.max(0, Math.floor(height));
+  const stageWidth = Math.max(0, Math.round(width));
+  const stageHeight = Math.max(0, Math.round(height));
 
   const root = useMemo(() => {
     const rootData: TreemapTileDatum & { children: TreemapTileDatum[] } = {
@@ -1001,7 +1022,8 @@ export function AssetTreeMapKonva({
       d3
         .treemap<TreemapTileDatum>()
         .size([stageWidth, stageHeight])
-        .padding(0)
+        .paddingInner(TREEMAP_GUTTER)
+        .paddingOuter(TREEMAP_GUTTER)
         .round(true)(hierarchy),
     );
   }, [data, stageWidth, stageHeight]);
@@ -1103,7 +1125,12 @@ export function AssetTreeMapKonva({
           transform: `translate(${stageOffset.x}px, ${stageOffset.y}px)`,
         }}
       >
-        <Stage width={stageWidth} height={stageHeight} pixelRatio={dpr}>
+        <Stage
+          key={`${stageWidth}x${stageHeight}`}
+          width={stageWidth}
+          height={stageHeight}
+          pixelRatio={dpr}
+        >
           <Layer>
             <Rect width={stageWidth} height={stageHeight} fill="black" />
             {tiles}

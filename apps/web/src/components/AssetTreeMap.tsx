@@ -103,10 +103,16 @@ export default function AssetTreeMap({
     if (!el) return;
 
     const rect = el.getBoundingClientRect();
-    setContainerSize({
-      width: Math.max(0, Math.floor(rect.width)),
-      height: Math.max(0, Math.floor(rect.height)),
-    });
+    const nextSize = {
+      width: Math.max(0, Math.round(rect.width)),
+      height: Math.max(0, Math.round(rect.height)),
+    };
+
+    setContainerSize((prev) =>
+      prev.width === nextSize.width && prev.height === nextSize.height
+        ? prev
+        : nextSize,
+    );
   }, []);
 
   useEffect(() => {
@@ -118,12 +124,23 @@ export default function AssetTreeMap({
     const el = containerRef.current;
     if (!el) return;
 
-    measureContainer();
+    let frame = window.requestAnimationFrame(measureContainer);
+    const scheduleMeasure = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(measureContainer);
+    };
 
-    const ro = new ResizeObserver(() => measureContainer());
+    const ro = new ResizeObserver(scheduleMeasure);
     ro.observe(el);
+
+    window.addEventListener("resize", scheduleMeasure);
+    window.visualViewport?.addEventListener("resize", scheduleMeasure);
+
     return () => {
+      window.cancelAnimationFrame(frame);
       ro.disconnect();
+      window.removeEventListener("resize", scheduleMeasure);
+      window.visualViewport?.removeEventListener("resize", scheduleMeasure);
     };
   }, [measureContainer]);
 
