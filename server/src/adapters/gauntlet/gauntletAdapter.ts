@@ -31,6 +31,27 @@ const isGauntletUiAllocationEligible = (allocationUsd: number): boolean => {
   return allocationUsd >= MIN_GAUNTLET_UI_ALLOCATION_USD;
 };
 
+const GAUNTLET_V2_SUFFIX_REGEX = /(^|\s)\(?v2\)?$/;
+
+const resolveGauntletAllocationProtocol = (
+  protocol: string,
+  displayName: string | null,
+): string => {
+  const normalizedProtocol = normalizeProtocol(protocol);
+
+  if (normalizedProtocol !== "morpho-v1") {
+    return normalizedProtocol;
+  }
+
+  const normalizedDisplayName = displayName?.trim().toLowerCase() ?? "";
+
+  if (GAUNTLET_V2_SUFFIX_REGEX.test(normalizedDisplayName)) {
+    return "morpho-v2";
+  }
+
+  return normalizedProtocol;
+};
+
 const chainIdToChain = (chainId: number): string => {
   switch (chainId) {
     case 1:
@@ -135,9 +156,14 @@ export const createGauntletAdapter = (): Adapter<
 
           if (!protocol) continue;
 
+          const resolvedProtocol = resolveGauntletAllocationProtocol(
+            protocol,
+            asset.displayName,
+          );
+
           const nodeId = buildProtocolListItemId(
             chain,
-            protocol,
+            resolvedProtocol,
             toSlug(asset.assetAddress),
           );
 
@@ -150,7 +176,7 @@ export const createGauntletAdapter = (): Adapter<
             id: nodeId,
             chain,
             name: name,
-            protocol: normalizeProtocol(protocol),
+            protocol: resolvedProtocol,
           });
 
           edges.push({ from: root.id, to: nodeId, allocationUsd });
