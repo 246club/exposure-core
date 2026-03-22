@@ -31,6 +31,8 @@ const isGauntletUiAllocationEligible = (allocationUsd: number): boolean => {
   return allocationUsd >= MIN_GAUNTLET_UI_ALLOCATION_USD;
 };
 
+const GAUNTLET_V2_SUFFIX_REGEX = /(^|\s)\(?v2\)?$/;
+
 const resolveGauntletAllocationProtocol = (
   protocol: string,
   displayName: string | null,
@@ -43,7 +45,7 @@ const resolveGauntletAllocationProtocol = (
 
   const normalizedDisplayName = displayName?.trim().toLowerCase() ?? "";
 
-  if (/(^|\s)\(?v2\)?$/.test(normalizedDisplayName)) {
+  if (GAUNTLET_V2_SUFFIX_REGEX.test(normalizedDisplayName)) {
     return "morpho-v2";
   }
 
