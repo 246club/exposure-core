@@ -68,7 +68,12 @@ const buildGauntletMorphoProtocolIndex =
 const getGauntletMorphoProtocolIndex =
   async (): Promise<GauntletMorphoProtocolIndex> => {
     if (!morphoProtocolIndexPromise) {
-      morphoProtocolIndexPromise = buildGauntletMorphoProtocolIndex();
+      morphoProtocolIndexPromise = buildGauntletMorphoProtocolIndex().catch(
+        (error) => {
+          morphoProtocolIndexPromise = null;
+          throw error;
+        },
+      );
     }
 
     return morphoProtocolIndexPromise;
@@ -84,8 +89,6 @@ const resolveGauntletAllocationProtocol = async (
   assetAddress: string,
 ): Promise<string> => {
   const normalizedProtocol = normalizeProtocol(protocol);
-  const normalizedChain = normalizeChain(chain);
-  const identityKey = `${normalizedChain}:${assetAddress}`.toLowerCase();
 
   if (!normalizedProtocol.startsWith("morpho")) {
     return normalizedProtocol;
@@ -94,6 +97,9 @@ const resolveGauntletAllocationProtocol = async (
   if (!assetAddress) {
     return normalizedProtocol;
   }
+
+  const normalizedChain = normalizeChain(chain);
+  const identityKey = `${normalizedChain}:${assetAddress}`.toLowerCase();
 
   try {
     const index = await getGauntletMorphoProtocolIndex();
@@ -108,18 +114,24 @@ const resolveGauntletAllocationProtocol = async (
 };
 
 const chainIdToChain = (chainId: number): string => {
-  switch (chainId) {
-    case 1:
-      return "eth";
-    case 10:
-      return "op";
-    case 42161:
-      return "arb";
-    case 8453:
-      return "base";
-    default:
-      return String(chainId);
-  }
+  const chainName = (() => {
+    switch (chainId) {
+      case 1:
+        return "ethereum";
+      case 10:
+        return "optimism";
+      case 137:
+        return "polygon";
+      case 42161:
+        return "arbitrum";
+      case 8453:
+        return "base";
+      default:
+        return String(chainId);
+    }
+  })();
+
+  return normalizeChain(chainName);
 };
 
 export interface GauntletAllocation {
