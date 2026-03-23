@@ -131,16 +131,13 @@ export async function GET(
   }
 
   // Compute summary
-  const summary = computeSummary(vaults, config);
+  const summary = computeSummary(vaults);
 
   const response: IncidentDataResponse = { config, vaults, summary };
   return NextResponse.json(response);
 }
 
-function computeSummary(
-  vaults: VaultExposure[],
-  config: { lastUpdated: string },
-): IncidentSummary {
+function computeSummary(vaults: VaultExposure[]): IncidentSummary {
   const byProtocol: IncidentSummary["byProtocol"] = {};
   const byAsset: IncidentSummary["byAsset"] = {};
   const byChain: IncidentSummary["byChain"] = {};
@@ -188,6 +185,6 @@ function computeSummary(
     byProtocol,
     byAsset,
     byChain,
-    dataTimestamp: config.lastUpdated,
+    dataTimestamp: new Date().toISOString(),
   };
 }

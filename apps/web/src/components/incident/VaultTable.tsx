@@ -125,6 +125,54 @@ function ChainLogo({ chain }: { chain: string }) {
   );
 }
 
+const PROTOCOL_NAMES: Record<string, string> = {
+  morpho: "Morpho",
+  euler: "Euler",
+  midas: "Midas",
+  inverse: "Inverse Finance",
+  fluid: "Fluid",
+  gearbox: "Gearbox",
+  venus: "Venus",
+  "lista-dao": "Lista DAO",
+  upshift: "Upshift",
+  yo: "YO",
+};
+
+function ProtocolLogo({ protocol }: { protocol: string }) {
+  const [imgError, setImgError] = useState(false);
+  const displayName =
+    PROTOCOL_NAMES[protocol] ??
+    protocol.charAt(0).toUpperCase() + protocol.slice(1);
+  const fb = PROTOCOL_FALLBACK[protocol] ?? {
+    initials: protocol.slice(0, 2).toUpperCase(),
+    color: "#888",
+  };
+
+  if (imgError) {
+    return (
+      <div
+        title={displayName}
+        className="w-5 h-5 rounded flex items-center justify-center"
+        style={{ backgroundColor: fb.color }}
+      >
+        <span className="text-white font-black" style={{ fontSize: 8 }}>
+          {fb.initials}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={getProtocolIcon(protocol)}
+      alt={displayName}
+      title={displayName}
+      className="w-5 h-5"
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
 /* ── Filter Logo ── */
 function FilterLogo({ src, alt }: { src: string; alt: string }) {
   const [error, setError] = useState(false);
@@ -564,11 +612,12 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
       >
         <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "30%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "28%" }} />
             <col style={{ width: "14%" }} />
             <col style={{ width: "14%" }} />
-            <col style={{ width: "18%" }} />
+            <col style={{ width: "16%" }} />
             <col style={{ width: "16%" }} />
           </colgroup>
           <thead
@@ -583,6 +632,9 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           >
             <tr>
               <th className="px-4 py-3 text-left whitespace-nowrap">Network</th>
+              <th className="px-4 py-3 text-left whitespace-nowrap">
+                Protocol
+              </th>
               <th className="px-4 py-3 text-left whitespace-nowrap">Vault</th>
               <th
                 className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
@@ -632,6 +684,10 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                         <ChainLogo key={c} chain={c} />
                       ))}
                     </div>
+                  </td>
+                  {/* Protocol */}
+                  <td className="px-4 py-3">
+                    <ProtocolLogo protocol={ve.vault.protocol} />
                   </td>
                   {/* Vault */}
                   <td className="px-4 py-3">
@@ -720,7 +776,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
             {sorted.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-10 text-center text-sm"
                   style={{ color: "rgba(0,0,0,0.30)" }}
                 >

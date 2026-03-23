@@ -43,10 +43,7 @@ function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function computeSummary(
-  vaults: VaultExposure[],
-  config: { lastUpdated: string },
-): IncidentSummary {
+function computeSummary(vaults: VaultExposure[]): IncidentSummary {
   const byProtocol: IncidentSummary["byProtocol"] = {};
   const byAsset: IncidentSummary["byAsset"] = {};
   const byChain: IncidentSummary["byChain"] = {};
@@ -91,7 +88,7 @@ function computeSummary(
     byProtocol,
     byAsset,
     byChain,
-    dataTimestamp: config.lastUpdated,
+    dataTimestamp: new Date().toISOString(),
   };
 }
 
@@ -220,7 +217,7 @@ export default async function IncidentPage({
     });
   }
 
-  const summary = computeSummary(vaults, config);
+  const summary = computeSummary(vaults);
 
   // Protocols sorted by exposure descending
   const sortedProtocols = Object.entries(summary.byProtocol).sort(
@@ -255,21 +252,21 @@ export default async function IncidentPage({
     }),
   );
 
-  // Static timeline entries for TimelinePanel (tagged)
+  // Timeline entries — chronological, sourced from tweets
   const timelineEntries = [
     {
-      date: "Mar 22, 2026",
+      date: "Mar 22, 2026 · 02:21 UTC",
       tag: "exploit" as const,
-      text: "USR depegs following Resolv Labs exploit; price drops to $0.58.",
+      text: "Resolv's USR contract exploited — ~$50M USR minted for ~$100K USDC.",
       details: {
         description:
-          "An attacker exploited a vulnerability in Resolv Labs, minting ~80M unbacked USR tokens and extracting ~$25M. The USR stablecoin lost its peg, dropping from $1.00 to $0.58 within hours.",
+          "A malicious actor gained unauthorized access to Resolv infrastructure through a compromised private key, minting approximately $80M of uncollateralized USR. ~$25M was extracted before contracts were paused.",
         tweets: [
           {
-            author: "Resolv Labs",
-            handle: "@ResolvLabs",
-            text: "We are aware of an exploit affecting USR. Our team is investigating and working with security partners. Withdrawals are paused.",
-            url: "https://x.com/ResolvLabs",
+            author: "YAM",
+            handle: "@yieldsandmore",
+            text: "USR from @ResolvLabs is trading at one cent, someone minted 50m USR with $100k USDC",
+            url: "https://x.com/yieldsandmore/status/2035547381026967779",
           },
         ],
         links: [
@@ -281,17 +278,63 @@ export default async function IncidentPage({
       },
     },
     {
-      date: "Mar 22, 2026",
+      date: "Mar 22, 2026 · 05:24 UTC",
       tag: "curator" as const,
-      text: "Gauntlet pauses deposits across affected Morpho vaults as a precautionary measure.",
+      text: "Gauntlet detects exploit; flags limited exposure in high-yield vaults.",
+      details: {
+        tweets: [
+          {
+            author: "Gauntlet",
+            handle: "@gauntlet_xyz",
+            text: "At 2:21 AM UTC, Resolv's USR contract experienced an exploit where $50M Resolv USD (USR) was minted for approximately $100,000 USDC. Most Gauntlet vaults are unaffected. A few high-yield vaults had limited exposure.",
+            url: "https://x.com/gauntlet_xyz/status/2035588296592789560",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 08:00 UTC",
+      tag: "response" as const,
+      text: "Telos Consilium confirms exposure contained to ~$28K.",
+      details: {
+        tweets: [
+          {
+            author: "Telos Consilium",
+            handle: "@TelosConsilium",
+            text: "Exposure is contained to approx $28k from the Haven Earn Vault on Plasma and the Balancer pool that rehypotecates there.",
+            url: "https://x.com/TelosConsilium/status/2035627754146648174",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 09:00 UTC",
+      tag: "response" as const,
+      text: "Morpho co-founder confirms no vulnerability in Morpho contracts; vaults without exposure fully isolated.",
+      details: {
+        tweets: [
+          {
+            author: "Merlin Egalite",
+            handle: "@MerlinEgalite",
+            text: "We're aware of a security incident involving Resolv that has impacted USR. I want to reiterate that there is no vulnerability in Morpho contracts. They are safe and operating as intended.",
+            url: "https://x.com/MerlinEgalite/status/2035642775941632389",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 09:34 UTC",
+      tag: "response" as const,
+      text: "Fluid announces full coverage of any remaining bad debt; USR markets paused.",
       details: {
         description:
-          "Gauntlet acted swiftly to pause deposits on all Morpho vaults with USR/wstUSR/RLP collateral exposure, preventing additional capital from entering at-risk positions.",
-        actions: [
+          "Fluid's automated ceilings prevented excessive borrowing. USR markets were paused and all user losses will be fully covered.",
+        tweets: [
           {
-            protocol: "morpho",
-            action: "Pause deposits",
-            market: "Gauntlet USDC Core, Gauntlet USDC Frontier",
+            author: "Fluid",
+            handle: "@0xfluid",
+            text: "Fluid automated ceilings prevented excessive borrowing of the funds, and USR markets have been paused. In case of any remaining bad debt on Fluid, all user losses will be fully covered.",
+            url: "https://x.com/0xfluid/status/2035651370607419902",
           },
         ],
       },
@@ -299,16 +342,110 @@ export default async function IncidentPage({
     {
       date: "Mar 22, 2026",
       tag: "response" as const,
-      text: "Inverse Finance announces coverage of DOLA bad debt from the exploit.",
+      text: "Stani Kulechov confirms Aave has no exposure to USR; Resolv backing assets remain safe.",
       details: {
-        description:
-          "Inverse Finance committed to covering all bad debt accrued in the DOLA market from the USR exploit, protecting DOLA depositors from losses.",
         tweets: [
           {
-            author: "Inverse Finance",
-            handle: "@InverseFinance",
-            text: "We will cover all bad debt from the USR exploit in the DOLA market. DOLA holders are safe.",
-            url: "https://x.com/InverseFinance",
+            author: "Stani.eth",
+            handle: "@StaniKulechov",
+            text: "Aave has no exposure to Resolv USR. Resolv is a liquidity provider on Aave, supplying its backing assets to the protocol. These assets remain safe, as the backing itself was unaffected.",
+            url: "https://x.com/StaniKulechov/status/2035631992151146725",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 11:21 UTC",
+      tag: "response" as const,
+      text: "YO confirms yoUSD has 2.75% exposure to RLP; vault paused as precaution.",
+      details: {
+        tweets: [
+          {
+            author: "YO",
+            handle: "@yield",
+            text: "yoUSD has no direct or indirect exposure to USR. yoUSD has a 2.75% exposure to RLP. Resolv has communicated that the collateral pool remains intact. As a precaution, the yoUSD vault was paused.",
+            url: "https://x.com/yield/status/2035678211195937065",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 12:34 UTC",
+      tag: "update" as const,
+      text: "DefiMoon warns Fluid incurred bad debt; questions lending risk design.",
+      details: {
+        tweets: [
+          {
+            author: "DefiMoon",
+            handle: "@DefiMoon",
+            text: "Fluid incurred some bad debt today due to the $USR hack. Like I warned a while back... lending on @0xfluid is much more risky due to the design of the protocol and the incentive structure!",
+            url: "https://x.com/DefiMoon/status/2035696578925670475",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 13:19 UTC",
+      tag: "response" as const,
+      text: "Sam MacPherson confirms Spark, Sky and USDS have zero USR exposure.",
+      details: {
+        tweets: [
+          {
+            author: "Sam MacPherson",
+            handle: "@hexonaut",
+            text: "Spark, Sky and USDS have no exposure to USR. Be safe out there.",
+            url: "https://x.com/hexonaut/status/2035707879349473329",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 14:10 UTC",
+      tag: "update" as const,
+      text: "Octave analyzes Morpho market exposure — wstUSR/USDC is the biggest affected market.",
+      details: {
+        tweets: [
+          {
+            author: "Octave",
+            handle: "@OctavioNotPunk",
+            text: "The wstUSR/USDC market is the biggest Morpho market exploited. In total, 5 notable vaults are exposed. The Gauntlet USDC Core and the Resolv USDC one (13% of total vault exposure), as well as the Gauntlet USDC Frontier (1.9%).",
+            url: "https://x.com/OctavioNotPunk/status/2035720837882323204",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026",
+      tag: "update" as const,
+      text: "Ash maps the full contagion: compromised operator key, 80M unbacked USR minted for $100K, $25M extracted.",
+      details: {
+        tweets: [
+          {
+            author: "Ash",
+            handle: "@incyd__",
+            text: "resolv exploit is a stress test of something nobody wanted to test. one compromised operator key. 80M unbacked USR minted for $100K. $25M extracted. 3 hours before the protocol paused.",
+            url: "https://x.com/incyd__/status/2035726069391819111",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026",
+      tag: "update" as const,
+      text: "Omer Goldberg (Chaos Labs) analyzes contagion — USR used as collateral across multiple lending markets without risk guardrails.",
+      details: {
+        tweets: [
+          {
+            author: "Omer Goldberg",
+            handle: "@omeragoldberg",
+            text: "Resolv's USR stablecoin was exploited for $25M. There's significant contagion across Morpho vaults, lending markets, and protocols. USR was collateral across multiple lending markets/vaults. Many used hardcoded pricing without risk guardrails.",
+            url: "https://x.com/omeragoldberg/status/2035772805812453759",
+          },
+          {
+            author: "Omer Goldberg",
+            handle: "@omeragoldberg",
+            text: "Millions in bad debt were created across Gauntlet's Morpho vaults from the Resolv USR exploit. Almost all of it was supplied after the exploit. So why would curators supply millions in USDC to a broken market?",
+            url: "https://x.com/omeragoldberg/status/2035817791786221990",
           },
         ],
       },
@@ -316,13 +453,120 @@ export default async function IncidentPage({
     {
       date: "Mar 22, 2026",
       tag: "curator" as const,
-      text: "Re7 Labs reduces USR allocation in Re7 USDC vault on Base.",
+      text: "Steakhouse Financial confirms zero exposure across all vaults; was not allocating to RLP.",
       details: {
-        actions: [
+        tweets: [
           {
-            protocol: "morpho",
-            action: "Reduce USR allocation",
-            market: "Re7 USDC (Base)",
+            author: "Steakhouse Financial",
+            handle: "@SteakhouseFi",
+            text: "No Steakhouse vault (Morpho, Turbo/Term vaults, etc) is currently exposed to Resolv (USR, wstUSR). We were not allocating to RLP.",
+            url: "https://x.com/SteakhouseFi/status/2035559831810249105",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 17:28 UTC",
+      tag: "curator" as const,
+      text: "Re7 Labs publishes incident update — flagship mRe7YIELD has zero exposure; swift response measures taken.",
+      details: {
+        description:
+          "Re7's internal monitoring flagged the exploit in real time. At 2:46am UTC they notified partners across DeFi. By 3am UTC they set caps to 0 and removed impacted markets from supply queues.",
+        tweets: [
+          {
+            author: "Re7 Labs",
+            handle: "@Re7Labs",
+            text: "Our flagship strategy - mRe7YIELD - has zero exposure to any of today's attacks. Our internal monitoring systems flagged this in real time, and at 2:46am UTC we were among the first to notify partners across DeFi.",
+            url: "https://x.com/Re7Labs/status/2035770653261869480",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026",
+      tag: "update" as const,
+      text: "DefiMoon reports $334M in Fluid outflows — biggest daily outflow since protocol launch.",
+      details: {
+        tweets: [
+          {
+            author: "DefiMoon",
+            handle: "@DefiMoon",
+            text: "Wow brutal day for @0xfluid: $334m of outflows today, the biggest daily outflow since the protocol launched! This is more than 10x the size of the bad debt. TVL also dropped under $1b.",
+            url: "https://x.com/DefiMoon/status/2035771008943079579",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 18:36 UTC",
+      tag: "update" as const,
+      text: "Wumpy publishes comprehensive list of every vault and protocol hit by the exploit.",
+      details: {
+        description:
+          "Semi-comprehensive list covering Morpho vaults (13+), Euler markets (2), Midas products (4), and additional protocols including Fluid, Venus, Lista DAO, Inverse, and Upshift.",
+        tweets: [
+          {
+            author: "wumpy crypto",
+            handle: "@wumpycrypto",
+            text: "a semi-comprehensive list of every vault/protocol hit by the @ResolvLabs exploit: Morpho vaults, Euler markets, Midas products, yoUSD, Fluid, Venus Flux, Lista DAO USD1, Inverse DOLA, Upshift coreUSDC/upUSDC/earnAUSD. Some protocols are promising to cover bad debt (Inverse, Fluid).",
+            url: "https://x.com/wumpycrypto/status/2035787782455451908",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 20:55 UTC",
+      tag: "response" as const,
+      text: "Paul Frambot (Morpho CEO) provides full update — ~15 vaults with non-negligible exposure out of ~500; isolation working as designed.",
+      details: {
+        description:
+          "Out of ~500 Morpho Vaults with >$10k in deposits, ~15 had non-negligible exposure. Lower-risk 'prime vaults' remained completely unaffected. Curators responded quickly with Morpho team assistance.",
+        tweets: [
+          {
+            author: "Paul Frambot",
+            handle: "@PaulFrambot",
+            text: "Out of the ~500 Morpho Vaults with >$10k in deposits, there are ~15 vaults with non-negligible exposure. Every other vault without exposure, including lower-risk 'prime vaults', remained completely unaffected. These events showcase how Morpho's isolation works in practice.",
+            url: "https://x.com/PaulFrambot/status/2035822674728083906",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 21:25 UTC",
+      tag: "exploit" as const,
+      text: "Resolv Labs issues official statement — compromised private key, ~$80M uncollateralized USR minted, ~9M burned, $141M in assets held.",
+      details: {
+        description:
+          "The incident resulted from unauthorized third-party actions including a targeted infrastructure compromise. Resolv's underlying collateral was not directly compromised. They are preparing to enable redemptions for pre-incident USR starting March 23.",
+        tweets: [
+          {
+            author: "Resolv Labs",
+            handle: "@ResolvLabs",
+            text: "A malicious actor gained unauthorized access to Resolv infrastructure through compromised private key, resulting in the minting of approximately $80M of uncollateralized USR. The protocol currently holds approximately $141M in assets. We strongly advise against trading USR at this time.",
+            url: "https://x.com/ResolvLabs/status/2035830314799599616",
+          },
+        ],
+        links: [
+          {
+            label: "The Block — USR Depeg Report",
+            url: "https://www.theblock.co/post/394582/resolvs-usr-stablecoin-depegs",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 23, 2026 · 01:38 UTC",
+      tag: "curator" as const,
+      text: "Gauntlet publishes resolution update — discussing recovery with Resolv, preparing compensation plan.",
+      details: {
+        description:
+          "Deposits disabled, caps reduced to 0. USDC Core on mainnet has $4.95M in wstUSR/USDC market with $2.91M in liquidity. USDC Frontier has $1.09M exposure. Gauntlet USD Alpha has no exposure.",
+        tweets: [
+          {
+            author: "Gauntlet",
+            handle: "@gauntlet_xyz",
+            text: "We are discussing resolution with Resolv. For any remaining funds, Gauntlet is working on a compensation plan. Deposits are disabled and caps have been reduced to 0. Liquidity continues to improve in Core and Frontier.",
+            url: "https://x.com/gauntlet_xyz/status/2035893955666256054",
           },
         ],
       },
@@ -478,7 +722,6 @@ export default async function IncidentPage({
             style={{
               gap: 1,
               backgroundColor: "rgba(0,0,0,0.06)",
-              alignItems: "start",
             }}
           >
             {/* Exposure by Protocol */}

@@ -270,7 +270,7 @@ function DetailModal({
   );
 }
 
-const PREVIEW_COUNT = 4;
+const PREVIEW_COUNT = 10;
 
 function TimelineEntryList({
   entries,
