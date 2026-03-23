@@ -350,7 +350,7 @@ const config: IncidentConfig = {
     {
       source: "manual",
       name: "yoUSD",
-      protocol: "yields",
+      protocol: "yo",
       chains: ["base"],
       status: "affected",
       exposureUsd: 1_214_131, // $1,214,131 USDC in Resolv RLP pool (2.87% of vault)

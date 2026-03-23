@@ -30,7 +30,7 @@ export function ExposureBar({
 
   return (
     <div
-      className={`flex h-1 w-full overflow-hidden rounded-full ${className ?? ""}`}
+      className={`flex h-1.5 overflow-hidden rounded-full ${className ?? ""}`}
       style={{ backgroundColor: "rgba(0,0,0,0.04)" }}
     >
       {normalized.map((entry) => (

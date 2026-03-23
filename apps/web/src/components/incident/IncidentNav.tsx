@@ -1,20 +1,13 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Activity } from "lucide-react";
 
 interface IncidentNavProps {
   title: string;
-  slug: string;
   lastUpdated?: string;
 }
-
-const NAV_ITEMS = [
-  { label: "Overview", href: (slug: string) => `/incident/${slug}` },
-  { label: "Data", href: (slug: string) => `/incident/${slug}/dashboard` },
-] as const;
 
 function formatRelativeTime(isoString: string): string {
   const now = Date.now();
@@ -31,8 +24,7 @@ function formatRelativeTime(isoString: string): string {
   return `Updated ${diffDays}d ago`;
 }
 
-export function IncidentNav({ title, slug, lastUpdated }: IncidentNavProps) {
-  const pathname = usePathname();
+export function IncidentNav({ title, lastUpdated }: IncidentNavProps) {
   const [relTime, setRelTime] = useState<string>(() =>
     lastUpdated ? formatRelativeTime(lastUpdated) : "",
   );
@@ -46,13 +38,6 @@ export function IncidentNav({ title, slug, lastUpdated }: IncidentNavProps) {
     }, 30_000);
     return () => clearInterval(interval);
   }, [lastUpdated]);
-
-  function isActive(href: string): boolean {
-    if (href === `/incident/${slug}`) {
-      return pathname === `/incident/${slug}`;
-    }
-    return pathname.startsWith(href);
-  }
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black">
@@ -83,34 +68,8 @@ export function IncidentNav({ title, slug, lastUpdated }: IncidentNavProps) {
           </span>
         </div>
 
-        {/* Center: nav pills */}
-        <nav className="flex items-center gap-1 flex-1 justify-center">
-          {NAV_ITEMS.map((item) => {
-            const href = item.href(slug);
-            const active = isActive(href);
-            return (
-              <Link
-                key={item.label}
-                href={href}
-                className="rounded-full transition-all duration-200"
-                style={{
-                  padding: "5px 14px",
-                  backgroundColor: active ? "#000" : "transparent",
-                  color: active ? "#fff" : "rgba(0,0,0,0.4)",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  border: active
-                    ? "1px solid #000"
-                    : "1px solid rgba(0,0,0,0.08)",
-                }}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* Spacer */}
+        <div className="flex-1" />
 
         {/* Right: last updated timestamp */}
         <div className="flex items-center gap-3 shrink-0">

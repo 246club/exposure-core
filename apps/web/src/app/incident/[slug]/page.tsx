@@ -19,6 +19,10 @@ import { ProtocolRow } from "@/components/incident/ProtocolRow";
 import { TimelinePanel } from "@/components/incident/TimelinePanel";
 import { AnimatedCounter } from "@/components/incident/AnimatedCounter";
 import { VaultTable } from "@/components/incident/VaultTable";
+import {
+  ToxicAssetDonut,
+  type DonutEntry,
+} from "@/components/incident/ToxicAssetDonut";
 
 export const revalidate = 600;
 
@@ -98,6 +102,10 @@ const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
   inverse: { color: "#000000", initials: "IN" },
   fluid: { color: "#3b82f6", initials: "FL" },
   gearbox: { color: "#4a4a4a", initials: "G" },
+  yo: { color: "#6366f1", initials: "YO" },
+  venus: { color: "#f59e0b", initials: "V" },
+  "lista-dao": { color: "#3b82f6", initials: "L" },
+  upshift: { color: "#8b5cf6", initials: "U" },
 };
 
 export default async function IncidentPage({
@@ -222,7 +230,18 @@ export default async function IncidentPage({
     .filter((ve) => ve.status === "loaded")
     .sort((a, b) => b.exposurePct - a.exposurePct)[0];
 
-  // Donut chart: compute conic-gradient from byAsset
+  // Token icon path helper
+  const tokenIconPath = (symbol: string): string | null => {
+    const key = symbol.toLowerCase();
+    const map: Record<string, string> = {
+      usr: "/logos/assets/usr.svg",
+      wstusr: "/logos/assets/wstusr.svg",
+      rlp: "/logos/assets/rlp.svg",
+    };
+    return map[key] ?? null;
+  };
+
+  // Donut chart data
   const assetEntries = Object.entries(summary.byAsset).sort(
     ([, a], [, b]) => b.exposureUsd - a.exposureUsd,
   );
@@ -233,19 +252,14 @@ export default async function IncidentPage({
     (sum, [, v]) => sum + v.exposureUsd,
     0,
   );
-  let cumulativeDeg = 0;
-  const conicStops = assetEntries.map(([symbol, { exposureUsd }]) => {
-    const deg =
-      totalAssetExposure > 0 ? (exposureUsd / totalAssetExposure) * 360 : 0;
-    const color = assetColorBySymbol[symbol] ?? "#999";
-    const start = cumulativeDeg;
-    cumulativeDeg += deg;
-    return `${color} ${start.toFixed(1)}deg ${cumulativeDeg.toFixed(1)}deg`;
-  });
-  const conicGradient =
-    conicStops.length > 0
-      ? `conic-gradient(${conicStops.join(", ")})`
-      : "conic-gradient(#ddd 0deg 360deg)";
+  const donutEntries: DonutEntry[] = assetEntries.map(
+    ([symbol, { exposureUsd }]) => ({
+      symbol,
+      exposureUsd,
+      color: assetColorBySymbol[symbol] ?? "#999",
+      iconPath: tokenIconPath(symbol),
+    }),
+  );
 
   // Static timeline entries for TimelinePanel (tagged)
   const timelineEntries = [
@@ -253,21 +267,71 @@ export default async function IncidentPage({
       date: "Mar 22, 2026",
       tag: "exploit" as const,
       text: "USR depegs following Resolv Labs exploit; price drops to $0.58.",
+      details: {
+        description:
+          "An attacker exploited a vulnerability in Resolv Labs, minting ~80M unbacked USR tokens and extracting ~$25M. The USR stablecoin lost its peg, dropping from $1.00 to $0.58 within hours.",
+        tweets: [
+          {
+            author: "Resolv Labs",
+            handle: "@ResolvLabs",
+            text: "We are aware of an exploit affecting USR. Our team is investigating and working with security partners. Withdrawals are paused.",
+            url: "https://x.com/ResolvLabs",
+          },
+        ],
+        links: [
+          {
+            label: "The Block — USR Depeg Report",
+            url: "https://www.theblock.co/post/394582/resolvs-usr-stablecoin-depegs",
+          },
+        ],
+      },
     },
     {
       date: "Mar 22, 2026",
       tag: "curator" as const,
       text: "Gauntlet pauses deposits across affected Morpho vaults as a precautionary measure.",
+      details: {
+        description:
+          "Gauntlet acted swiftly to pause deposits on all Morpho vaults with USR/wstUSR/RLP collateral exposure, preventing additional capital from entering at-risk positions.",
+        actions: [
+          {
+            protocol: "morpho",
+            action: "Pause deposits",
+            market: "Gauntlet USDC Core, Gauntlet USDC Frontier",
+          },
+        ],
+      },
     },
     {
       date: "Mar 22, 2026",
       tag: "response" as const,
       text: "Inverse Finance announces coverage of DOLA bad debt from the exploit.",
+      details: {
+        description:
+          "Inverse Finance committed to covering all bad debt accrued in the DOLA market from the USR exploit, protecting DOLA depositors from losses.",
+        tweets: [
+          {
+            author: "Inverse Finance",
+            handle: "@InverseFinance",
+            text: "We will cover all bad debt from the USR exploit in the DOLA market. DOLA holders are safe.",
+            url: "https://x.com/InverseFinance",
+          },
+        ],
+      },
     },
     {
       date: "Mar 22, 2026",
       tag: "curator" as const,
       text: "Re7 Labs reduces USR allocation in Re7 USDC vault on Base.",
+      details: {
+        actions: [
+          {
+            protocol: "morpho",
+            action: "Reduce USR allocation",
+            market: "Re7 USDC (Base)",
+          },
+        ],
+      },
     },
     {
       date: "Mar 23, 2026",
@@ -284,17 +348,6 @@ export default async function IncidentPage({
       {title}
     </div>
   );
-
-  // Token icon path helper
-  const tokenIconPath = (symbol: string): string | null => {
-    const key = symbol.toLowerCase();
-    const map: Record<string, string> = {
-      usr: "/logos/assets/usr.svg",
-      wstusr: "/logos/assets/wstusr.svg",
-      rlp: "/logos/assets/rlp.svg",
-    };
-    return map[key] ?? null;
-  };
 
   // Covering protocols for BadDebtPanel
   const coveringProtocolsMap = new Map<string, string>();
@@ -361,11 +414,7 @@ export default async function IncidentPage({
             </div>
 
             {/* USR Price Chart */}
-            <PriceChart
-              currentPrice={0.5823}
-              priceChange24h={-41.77}
-              pegPrice={1.0}
-            />
+            <PriceChart />
           </div>
 
           {/* ── Row 2: Bad Debt Status | Donut by Toxic Asset ── */}
@@ -377,9 +426,9 @@ export default async function IncidentPage({
             <div className="md:col-span-2 bg-white px-5 py-4">
               {panelHeader("Bad Debt Status")}
               <BadDebtPanel
-                realizedDebt={summary.totalToxicExposureUsd}
+                realizedDebt={0}
                 coveredDebt={0}
-                uncoveredGap={summary.totalToxicExposureUsd}
+                uncoveredGap={0}
                 recoveryRate={0}
                 coveringProtocols={coveringProtocolsList}
               />
@@ -388,74 +437,10 @@ export default async function IncidentPage({
             {/* Donut by Toxic Asset */}
             <div className="bg-white px-5 py-4">
               {panelHeader("By Toxic Asset")}
-              <div className="flex items-center gap-6">
-                {/* Donut */}
-                <div
-                  className="w-[100px] h-[100px] rounded-full relative flex-shrink-0"
-                  style={{ background: conicGradient }}
-                >
-                  <div className="absolute inset-[28px] rounded-full bg-white flex items-center justify-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <span className="font-mono text-[11px] font-bold leading-tight">
-                        {formatUsdCompact(totalAssetExposure)}
-                      </span>
-                      <span className="text-[7px] text-black/25 uppercase tracking-widest">
-                        Total
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Legend */}
-                <div className="flex flex-col justify-center gap-2">
-                  {assetEntries.map(([symbol, { exposureUsd }]) => {
-                    const iconPath = tokenIconPath(symbol);
-                    return (
-                      <div key={symbol} className="flex items-center gap-2">
-                        {iconPath ? (
-                          <img
-                            src={iconPath}
-                            alt={symbol}
-                            width={16}
-                            height={16}
-                            className="w-4 h-4 rounded-full flex-shrink-0"
-                          />
-                        ) : (
-                          <div
-                            className="w-4 h-4 rounded-full flex-shrink-0"
-                            style={{
-                              backgroundColor:
-                                assetColorBySymbol[symbol] ?? "#999",
-                            }}
-                          />
-                        )}
-                        <div>
-                          <span
-                            className="font-black uppercase"
-                            style={{ fontSize: 9, color: "rgba(0,0,0,0.65)" }}
-                          >
-                            {symbol}
-                          </span>
-                          <span
-                            className="ml-1.5 font-mono"
-                            style={{ fontSize: 9, color: "rgba(0,0,0,0.35)" }}
-                          >
-                            {formatUsdCompact(exposureUsd)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {assetEntries.length === 0 && (
-                    <span
-                      className="font-mono"
-                      style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }}
-                    >
-                      No data
-                    </span>
-                  )}
-                </div>
-              </div>
+              <ToxicAssetDonut
+                entries={donutEntries}
+                total={totalAssetExposure}
+              />
             </div>
           </div>
 
@@ -545,11 +530,7 @@ export default async function IncidentPage({
           {/* ── Row 5: Vault Table (full-width) ── */}
           <div className="bg-white px-5 py-4">
             {panelHeader("All Affected Vaults")}
-            <VaultTable
-              vaults={vaults}
-              toxicAssets={config.toxicAssets}
-              slug={slug}
-            />
+            <VaultTable vaults={vaults} toxicAssets={config.toxicAssets} />
           </div>
 
           {/* ── Footer ── */}

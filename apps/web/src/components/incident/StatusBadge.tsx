@@ -6,42 +6,47 @@ interface StatusBadgeProps {
 
 const STATUS_STYLES: Record<
   StatusBadgeProps["status"],
-  { color: string; label: string }
+  { bg: string; color: string; label: string }
 > = {
   affected: {
-    color: "#E11D48",
+    bg: "rgba(0,0,0,0.04)",
+    color: "rgba(0,0,0,0.50)",
     label: "Affected",
   },
   covering: {
-    color: "#00A35C",
+    bg: "rgba(0,163,92,0.08)",
+    color: "rgba(0,163,92,0.70)",
     label: "Covering",
   },
   pending: {
-    color: "rgba(0,0,0,0.2)",
+    bg: "rgba(0,0,0,0.03)",
+    color: "rgba(0,0,0,0.25)",
     label: "Pending",
   },
   unknown: {
-    color: "rgba(0,0,0,0.2)",
+    bg: "rgba(0,0,0,0.03)",
+    color: "rgba(0,0,0,0.25)",
     label: "Unknown",
   },
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const { color, label } = STATUS_STYLES[status] ?? STATUS_STYLES.unknown;
+  const { bg, color, label } = STATUS_STYLES[status] ?? STATUS_STYLES.unknown;
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span
-        style={{
-          color,
-          fontSize: 8,
-          fontWeight: 800,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-        }}
-      >
-        {label}
-      </span>
+    <span
+      className="inline-flex items-center rounded-full"
+      style={{
+        backgroundColor: bg,
+        color,
+        fontSize: 8,
+        fontWeight: 800,
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        padding: "2px 8px",
+      }}
+    >
+      {label}
     </span>
   );
 }

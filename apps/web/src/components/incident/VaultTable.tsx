@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import Link from "next/link";
 import type { VaultExposure, ToxicAssetDef } from "@/lib/incident/types";
-import { slugifyVaultName } from "@/lib/incident/types";
 import { formatUsdCompact } from "@/lib/incident/format";
 import { getCuratorLogoKey } from "@/lib/incident/logos";
 import { StatusBadge } from "./StatusBadge";
@@ -12,7 +10,6 @@ import { ExposureBar } from "./ExposureBar";
 interface VaultTableProps {
   vaults: VaultExposure[];
   toxicAssets: ToxicAssetDef[];
-  slug: string;
 }
 
 type SortColumn = "name" | "exposurePct" | "exposureUsd" | "status";
@@ -23,13 +20,6 @@ const STATUS_ORDER: Record<string, number> = {
   covering: 1,
   unknown: 2,
 };
-
-function exposureColor(pct: number): string {
-  if (pct === 0) return "#22c55e";
-  if (pct < 0.05) return "#f59e0b";
-  if (pct < 0.15) return "#f97316";
-  return "#ef4444";
-}
 
 const PROTOCOL_FALLBACK: Record<string, { initials: string; color: string }> = {
   morpho: { initials: "M", color: "#2563eb" },
@@ -157,6 +147,20 @@ function ChainLogo({ chain }: { chain: string }) {
   );
 }
 
+/* ── Filter Logo ── */
+function FilterLogo({ src, alt }: { src: string; alt: string }) {
+  const [error, setError] = useState(false);
+  if (error) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-4 h-4 flex-shrink-0"
+      onError={() => setError(true)}
+    />
+  );
+}
+
 /* ── Filter Dropdown ── */
 interface FilterDropdownProps {
   label: string;
@@ -165,6 +169,7 @@ interface FilterDropdownProps {
   onToggle: (value: string) => void;
   capitalize?: boolean;
   uppercase?: boolean;
+  logoPath?: (option: string) => string;
 }
 
 function FilterDropdown({
@@ -174,6 +179,7 @@ function FilterDropdown({
   onToggle,
   capitalize: cap,
   uppercase: upper,
+  logoPath,
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -264,6 +270,7 @@ function FilterDropdown({
                     </svg>
                   )}
                 </span>
+                {logoPath && <FilterLogo src={logoPath(opt)} alt={opt} />}
                 <span style={{ color: "rgba(0,0,0,0.70)" }}>{display}</span>
               </button>
             );
@@ -274,7 +281,7 @@ function FilterDropdown({
   );
 }
 
-export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
+export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>("exposureUsd");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [search, setSearch] = useState("");
@@ -383,6 +390,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
           active={activeProtocols}
           onToggle={(v) => toggleFilter(setActiveProtocols, v)}
           capitalize
+          logoPath={(opt) => `/logos/protocols/${opt}.svg`}
         />
         <FilterDropdown
           label="Chain"
@@ -390,6 +398,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
           active={activeChains}
           onToggle={(v) => toggleFilter(setActiveChains, v)}
           uppercase
+          logoPath={(opt) => `/logos/chains/${opt}.svg`}
         />
         <FilterDropdown
           label="Status"
@@ -420,14 +429,12 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
       >
         <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: "28%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "16%" }} />
-            <col style={{ width: "14%" }} />
+            <col style={{ width: "32%" }} />
             <col style={{ width: "8%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "4%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "6%" }} />
           </colgroup>
           <thead
             className="sticky top-0 z-10 text-xs uppercase"
@@ -449,21 +456,12 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                 Protocol
               </th>
               <th className="px-4 py-3 text-left whitespace-nowrap">Chains</th>
-              <th className="px-4 py-3 text-left whitespace-nowrap">
-                Exposure
-              </th>
               <th
-                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
                 onClick={() => handleSort("exposureUsd")}
               >
-                At-Risk $
+                Exposure
                 <SortIndicator col="exposureUsd" />
-              </th>
-              <th
-                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
-                onClick={() => handleSort("exposurePct")}
-              >
-                %<SortIndicator col="exposurePct" />
               </th>
               <th
                 className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
@@ -491,10 +489,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   }
                 >
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/incident/${slug}/vault/${slugifyVaultName(ve.vault.name)}`}
-                      className="flex items-center gap-2 hover:text-black/70 transition-colors"
-                    >
+                    <div className="flex items-center gap-2">
                       <VaultLogo
                         protocol={ve.vault.protocol}
                         curator={ve.vault.curator}
@@ -512,7 +507,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                           </span>
                         )}
                       </div>
-                    </Link>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <ProtocolLogo protocol={ve.vault.protocol} />
@@ -526,61 +521,34 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   </td>
                   <td className="px-4 py-3">
                     {isPending ? (
-                      <span style={{ color: "rgba(0,0,0,0.20)" }}>&mdash;</span>
-                    ) : (
-                      <ExposureBar
-                        breakdown={ve.breakdown}
-                        toxicAssets={toxicAssets}
-                      />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
-                    {isPending ? (
-                      <span style={{ color: "rgba(0,0,0,0.20)" }}>&mdash;</span>
-                    ) : (
-                      <span style={{ color: "rgba(0,0,0,0.70)" }}>
-                        {formatUsdCompact(ve.toxicExposureUsd)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
-                    {isPending ? (
                       <span style={{ color: "rgba(0,0,0,0.20)" }}>pending</span>
                     ) : (
-                      <span
-                        style={{
-                          color: exposureColor(ve.exposurePct),
-                        }}
-                      >
-                        {(ve.exposurePct * 100).toFixed(1)}%
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 flex-shrink-0">
+                          <ExposureBar
+                            breakdown={ve.breakdown}
+                            toxicAssets={toxicAssets}
+                          />
+                        </div>
+                        <span
+                          className="font-mono whitespace-nowrap"
+                          style={{ fontSize: 11, color: "rgba(0,0,0,0.70)" }}
+                        >
+                          {formatUsdCompact(ve.toxicExposureUsd)}
+                        </span>
+                        <span
+                          className="font-mono whitespace-nowrap"
+                          style={{ fontSize: 11, color: "rgba(0,0,0,0.35)" }}
+                        >
+                          {(ve.exposurePct * 100).toFixed(1)}%
+                        </span>
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <StatusBadge status={ve.vault.status} />
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <Link
-                      href={`/incident/${slug}/vault/${slugifyVaultName(ve.vault.name)}`}
-                      className="text-black/20 hover:text-black/50 transition-colors"
-                    >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M4.5 2.5L8 6L4.5 9.5"
-                          stroke="currentColor"
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </Link>
-                  </td>
+                  <td className="px-4 py-3" />
                 </tr>
               );
             })}
