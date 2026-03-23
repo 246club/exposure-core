@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formatUsdCompact } from "@/lib/incident/format";
 
 interface AnimatedCounterProps {
   target: number;
@@ -18,12 +19,7 @@ function formatValue(
   format: AnimatedCounterProps["format"],
 ): string {
   if (format === "usd") {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(value);
+    return formatUsdCompact(value);
   }
   return new Intl.NumberFormat("en-US").format(Math.round(value));
 }

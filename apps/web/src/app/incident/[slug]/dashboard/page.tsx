@@ -3,6 +3,7 @@ import { loadIncidentConfig } from "@/lib/incident/config";
 import { detectToxicExposure } from "@/lib/incident/detection";
 import { loadProtocolSnapshots } from "@/lib/graphLoader";
 import { inferProtocolFolderFromNodeId } from "@/lib/blobPaths";
+import { formatUsdCompact } from "@/lib/incident/format";
 import type {
   AdapterVault,
   IncidentSummary,
@@ -15,15 +16,6 @@ import { ProtocolRow } from "@/components/incident/ProtocolRow";
 import { VaultTable } from "@/components/incident/VaultTable";
 
 export const revalidate = 600;
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
-}
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -87,6 +79,8 @@ const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
   euler: { color: "#e04040", initials: "E" },
   midas: { color: "#8b5cf6", initials: "Mi" },
   inverse: { color: "#000000", initials: "IN" },
+  fluid: { color: "#1a8fa8", initials: "FL" },
+  gearbox: { color: "#7c3aed", initials: "GB" },
 };
 
 export default async function DashboardPage({
@@ -238,6 +232,17 @@ export default async function DashboardPage({
       ? `conic-gradient(${conicStops.join(", ")})`
       : "conic-gradient(#ddd 0deg 360deg)";
 
+  // Token icon path helper
+  const tokenIconPath = (symbol: string): string | null => {
+    const key = symbol.toLowerCase();
+    const map: Record<string, string> = {
+      usr: "/logos/assets/usr.svg",
+      wstusr: "/logos/assets/wstusr.svg",
+      rlp: "/logos/assets/rlp.svg",
+    };
+    return map[key] ?? null;
+  };
+
   // Panel header helper
   const panelHeader = (title: string) => (
     <div className="text-[8px] font-black text-black/30 tracking-[0.3em] uppercase mb-3 pb-2 border-b border-black/[0.04]">
@@ -314,7 +319,7 @@ export default async function DashboardPage({
                     fallbackInitials={display.initials}
                     fallbackColor={display.color}
                     meta={`${data.vaultCount} vault${data.vaultCount !== 1 ? "s" : ""}`}
-                    amount={formatUsd(data.exposureUsd)}
+                    amount={formatUsdCompact(data.exposureUsd)}
                     exposureBar={protocolBreakdown.map((b) => ({
                       color: assetColorBySymbol[b.asset] ?? "rgba(0,0,0,0.15)",
                       width: `${Math.min(b.pct * 100, 100)}%`,
@@ -344,7 +349,7 @@ export default async function DashboardPage({
               >
                 <div className="absolute inset-[26px] rounded-full bg-white flex flex-col items-center justify-center">
                   <span className="font-mono text-[12px] font-bold leading-tight">
-                    {formatUsd(totalAssetExposure)}
+                    {formatUsdCompact(totalAssetExposure)}
                   </span>
                   <span className="text-[7px] text-black/25 uppercase tracking-widest">
                     Total
@@ -353,30 +358,44 @@ export default async function DashboardPage({
               </div>
               {/* Legend */}
               <div className="flex flex-col gap-2">
-                {assetEntries.map(([symbol, { exposureUsd }]) => (
-                  <div key={symbol} className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{
-                        backgroundColor: assetColorBySymbol[symbol] ?? "#999",
-                      }}
-                    />
-                    <div>
-                      <span
-                        className="font-black uppercase"
-                        style={{ fontSize: 9, color: "rgba(0,0,0,0.65)" }}
-                      >
-                        {symbol}
-                      </span>
-                      <span
-                        className="ml-1.5 font-mono"
-                        style={{ fontSize: 9, color: "rgba(0,0,0,0.35)" }}
-                      >
-                        {formatUsd(exposureUsd)}
-                      </span>
+                {assetEntries.map(([symbol, { exposureUsd }]) => {
+                  const iconPath = tokenIconPath(symbol);
+                  return (
+                    <div key={symbol} className="flex items-center gap-2">
+                      {iconPath ? (
+                        <img
+                          src={iconPath}
+                          alt={symbol}
+                          width={16}
+                          height={16}
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                        />
+                      ) : (
+                        <div
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              assetColorBySymbol[symbol] ?? "#999",
+                          }}
+                        />
+                      )}
+                      <div>
+                        <span
+                          className="font-black uppercase"
+                          style={{ fontSize: 9, color: "rgba(0,0,0,0.65)" }}
+                        >
+                          {symbol}
+                        </span>
+                        <span
+                          className="ml-1.5 font-mono"
+                          style={{ fontSize: 9, color: "rgba(0,0,0,0.35)" }}
+                        >
+                          {formatUsdCompact(exposureUsd)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {assetEntries.length === 0 && (
                   <span
                     className="font-mono"
@@ -411,7 +430,7 @@ export default async function DashboardPage({
                         className="font-mono"
                         style={{ fontSize: 9, color: "rgba(0,0,0,0.40)" }}
                       >
-                        {formatUsd(exposureUsd)}
+                        {formatUsdCompact(exposureUsd)}
                       </span>
                     </div>
                     <div

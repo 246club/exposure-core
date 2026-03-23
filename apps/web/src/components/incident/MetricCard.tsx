@@ -1,5 +1,7 @@
 "use client";
 
+import { formatUsdCompact } from "@/lib/incident/format";
+
 interface MetricCardProps {
   label: string;
   value: number;
@@ -8,12 +10,7 @@ interface MetricCardProps {
 
 function formatValue(value: number, format: MetricCardProps["format"]): string {
   if (format === "usd") {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(value);
+    return formatUsdCompact(value);
   }
   if (format === "percent") {
     return `${value.toFixed(1)}%`;

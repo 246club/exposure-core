@@ -1,19 +1,11 @@
 import type { VaultExposure, ToxicAssetDef } from "@/lib/incident/types";
+import { formatUsdCompact } from "@/lib/incident/format";
 import { StatusBadge } from "./StatusBadge";
 import { ExposureBar } from "./ExposureBar";
 
 interface VaultHeroProps {
   vault: VaultExposure;
   toxicAssets: ToxicAssetDef[];
-}
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
 }
 
 function capitalize(str: string): string {
@@ -110,7 +102,7 @@ export function VaultHero({ vault, toxicAssets }: VaultHeroProps) {
 
           {/* Total allocation */}
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.50)" }}>
-            of {formatUsd(vault.totalAllocationUsd)} total allocation
+            of {formatUsdCompact(vault.totalAllocationUsd)} total allocation
           </p>
         </div>
       )}

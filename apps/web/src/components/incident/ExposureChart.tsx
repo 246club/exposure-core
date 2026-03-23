@@ -9,19 +9,11 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { formatUsdCompact } from "@/lib/incident/format";
 
 interface ExposureChartProps {
   data: { name: string; value: number; color: string }[];
   title: string;
-}
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,7 +31,7 @@ function CustomTooltip({ active, payload }: any) {
     >
       <p className="font-medium">{item.payload.name}</p>
       <p className="font-mono" style={{ color: item.payload.color }}>
-        {formatUsd(item.value)}
+        {formatUsdCompact(item.value)}
       </p>
     </div>
   );

@@ -4,6 +4,7 @@ import { loadIncidentConfig } from "@/lib/incident/config";
 import { detectToxicExposure } from "@/lib/incident/detection";
 import { loadProtocolSnapshots } from "@/lib/graphLoader";
 import { inferProtocolFolderFromNodeId } from "@/lib/blobPaths";
+import { formatUsdCompact } from "@/lib/incident/format";
 import type {
   AdapterVault,
   VaultExposure,
@@ -16,15 +17,6 @@ import { ExposureBar } from "@/components/incident/ExposureBar";
 import { getCuratorLogoKey } from "@/lib/incident/logos";
 
 export const revalidate = 600;
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
-}
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -350,7 +342,7 @@ export default async function VaultDetailPage({
                   fontWeight: 500,
                 }}
               >
-                of {formatUsd(vaultExposure.totalAllocationUsd)} total
+                of {formatUsdCompact(vaultExposure.totalAllocationUsd)} total
                 allocation
               </p>
             </div>
@@ -466,7 +458,7 @@ export default async function VaultDetailPage({
                         className="py-2.5 pl-4 text-right font-mono font-bold"
                         style={{ fontSize: 11, color: "rgba(0,0,0,0.65)" }}
                       >
-                        {formatUsd(alloc.allocationUsd)}
+                        {formatUsdCompact(alloc.allocationUsd)}
                       </td>
                     </tr>
                   ))}

@@ -1,19 +1,13 @@
 "use client";
 
+import { formatUsdCompact } from "@/lib/incident/format";
+
 interface BadDebtPanelProps {
   realizedDebt: number;
   coveredDebt: number;
   uncoveredGap: number;
   recoveryRate: number;
-}
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  coveringProtocolCount?: number;
 }
 
 function formatPercent(value: number): string {
@@ -25,6 +19,7 @@ export function BadDebtPanel({
   coveredDebt,
   uncoveredGap,
   recoveryRate,
+  coveringProtocolCount = 0,
 }: BadDebtPanelProps) {
   return (
     <div
@@ -50,7 +45,7 @@ export function BadDebtPanel({
           className="font-mono font-bold tracking-tight"
           style={{ fontSize: 20, color: "#E11D48" }}
         >
-          {formatUsd(realizedDebt)}
+          {formatUsdCompact(realizedDebt)}
         </p>
       </div>
 
@@ -67,14 +62,31 @@ export function BadDebtPanel({
             color: "rgba(0,0,0,0.25)",
           }}
         >
-          Covered
+          Covered / Promised
         </p>
-        <p
-          className="font-mono font-bold tracking-tight"
-          style={{ fontSize: 20, color: "#00A35C" }}
-        >
-          {formatUsd(coveredDebt)}
-        </p>
+        {coveredDebt > 0 ? (
+          <p
+            className="font-mono font-bold tracking-tight"
+            style={{ fontSize: 20, color: "#00A35C" }}
+          >
+            {formatUsdCompact(coveredDebt)}
+          </p>
+        ) : coveringProtocolCount > 0 ? (
+          <p
+            className="font-mono font-bold tracking-tight"
+            style={{ fontSize: 20, color: "#00A35C" }}
+          >
+            {coveringProtocolCount} protocol
+            {coveringProtocolCount !== 1 ? "s" : ""}
+          </p>
+        ) : (
+          <p
+            className="font-mono font-bold tracking-tight"
+            style={{ fontSize: 20, color: "#00A35C" }}
+          >
+            $0
+          </p>
+        )}
       </div>
 
       {/* Uncovered gap — neutral */}
@@ -93,7 +105,7 @@ export function BadDebtPanel({
           className="font-mono font-bold text-black tracking-tight"
           style={{ fontSize: 20 }}
         >
-          {formatUsd(uncoveredGap)}
+          {formatUsdCompact(uncoveredGap)}
         </p>
       </div>
 

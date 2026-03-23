@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { VaultExposure, ToxicAssetDef } from "@/lib/incident/types";
 import { slugifyVaultName } from "@/lib/incident/types";
+import { formatUsdCompact } from "@/lib/incident/format";
 import { StatusBadge } from "./StatusBadge";
 import { ExposureBar } from "./ExposureBar";
 
@@ -32,15 +33,6 @@ function exposureColor(pct: number): string {
   if (pct < 0.05) return "#f59e0b";
   if (pct < 0.15) return "#f97316";
   return "#ef4444";
-}
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
 }
 
 export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
@@ -135,13 +127,13 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
   function SortIndicator({ col }: { col: SortColumn }) {
     if (sortColumn !== col)
       return (
-        <span style={{ color: "rgba(255,255,255,0.20)" }} className="ml-1">
-          ⇅
+        <span style={{ color: "rgba(0,0,0,0.20)" }} className="ml-1">
+          &uarr;&darr;
         </span>
       );
     return (
-      <span className="ml-1" style={{ color: "rgba(255,255,255,0.70)" }}>
-        {sortDirection === "asc" ? "▲" : "▼"}
+      <span className="ml-1" style={{ color: "rgba(0,0,0,0.50)" }}>
+        {sortDirection === "asc" ? "\u25B2" : "\u25BC"}
       </span>
     );
   }
@@ -155,10 +147,10 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
           placeholder="Search vaults..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:ring-1 focus:ring-white/20"
+          className="w-full rounded-lg px-3 py-2 text-sm text-black placeholder:text-black/30 outline-none focus:ring-1 focus:ring-black/10"
           style={{
-            backgroundColor: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            backgroundColor: "rgba(0,0,0,0.02)",
+            border: "1px solid rgba(0,0,0,0.06)",
           }}
         />
 
@@ -173,10 +165,10 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
               className="rounded-full px-3 py-1 text-xs transition-colors capitalize"
               style={
                 activeProtocols.has(p)
-                  ? { backgroundColor: "#ffffff", color: "#09090b" }
+                  ? { backgroundColor: "#000", color: "#fff" }
                   : {
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      color: "rgba(255,255,255,0.50)",
+                      border: "1px solid rgba(0,0,0,0.10)",
+                      color: "rgba(0,0,0,0.50)",
                     }
               }
             >
@@ -190,10 +182,10 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
               className="rounded-full px-3 py-1 text-xs transition-colors uppercase"
               style={
                 activeChains.has(c)
-                  ? { backgroundColor: "#ffffff", color: "#09090b" }
+                  ? { backgroundColor: "#000", color: "#fff" }
                   : {
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      color: "rgba(255,255,255,0.50)",
+                      border: "1px solid rgba(0,0,0,0.10)",
+                      color: "rgba(0,0,0,0.50)",
                     }
               }
             >
@@ -207,10 +199,10 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
               className="rounded-full px-3 py-1 text-xs transition-colors capitalize"
               style={
                 activeStatuses.has(s)
-                  ? { backgroundColor: "#ffffff", color: "#09090b" }
+                  ? { backgroundColor: "#000", color: "#fff" }
                   : {
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      color: "rgba(255,255,255,0.50)",
+                      border: "1px solid rgba(0,0,0,0.10)",
+                      color: "rgba(0,0,0,0.50)",
                     }
               }
             >
@@ -223,27 +215,27 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
       {/* Table */}
       <div
         className="overflow-x-auto rounded-lg"
-        style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ border: "1px solid rgba(0,0,0,0.06)" }}
       >
         <table className="w-full text-sm">
           <thead
             className="sticky top-0 z-10 text-xs uppercase"
             style={{
-              backgroundColor: "#09090b",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
-              color: "rgba(255,255,255,0.35)",
+              backgroundColor: "rgba(0,0,0,0.03)",
+              borderBottom: "1px solid rgba(0,0,0,0.06)",
+              color: "rgba(0,0,0,0.35)",
             }}
           >
             <tr>
               <th
-                className="px-4 py-3 text-left cursor-pointer hover:text-white/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
                 onClick={() => handleSort("name")}
               >
                 Vault
                 <SortIndicator col="name" />
               </th>
               <th
-                className="px-4 py-3 text-left cursor-pointer hover:text-white/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
                 onClick={() => handleSort("protocol")}
               >
                 Protocol
@@ -254,19 +246,19 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                 Exposure
               </th>
               <th
-                className="px-4 py-3 text-right cursor-pointer hover:text-white/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
                 onClick={() => handleSort("exposurePct")}
               >
                 Exp %<SortIndicator col="exposurePct" />
               </th>
               <th
-                className="px-4 py-3 text-right cursor-pointer hover:text-white/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
                 onClick={() => handleSort("exposureUsd")}
               >
                 Exp $<SortIndicator col="exposureUsd" />
               </th>
               <th
-                className="px-4 py-3 text-right cursor-pointer hover:text-white/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
                 onClick={() => handleSort("status")}
               >
                 Status
@@ -281,10 +273,9 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                 <tr
                   key={i}
                   className="transition-colors"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                  style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      "rgba(255,255,255,0.02)")
+                    (e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.02)")
                   }
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.backgroundColor = "transparent")
@@ -293,9 +284,9 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   <td className="px-4 py-3">
                     <Link
                       href={`/incident/${slug}/vault/${slugifyVaultName(ve.vault.name)}`}
-                      className="block hover:text-white transition-colors"
+                      className="block hover:text-black/70 transition-colors"
                     >
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-black">
                         {ve.vault.name}
                       </span>
                     </Link>
@@ -303,7 +294,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   <td className="px-4 py-3">
                     <span
                       className="text-sm capitalize"
-                      style={{ color: "rgba(255,255,255,0.50)" }}
+                      style={{ color: "rgba(0,0,0,0.50)" }}
                     >
                       {ve.vault.protocol}
                     </span>
@@ -315,8 +306,8 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                           key={c}
                           className="rounded px-1.5 py-0.5 text-xs font-mono uppercase"
                           style={{
-                            backgroundColor: "rgba(255,255,255,0.06)",
-                            color: "rgba(255,255,255,0.50)",
+                            backgroundColor: "rgba(0,0,0,0.04)",
+                            color: "rgba(0,0,0,0.50)",
                           }}
                         >
                           {c}
@@ -326,7 +317,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   </td>
                   <td className="px-4 py-3 min-w-[80px]">
                     {isPending ? (
-                      <span style={{ color: "rgba(255,255,255,0.20)" }}>—</span>
+                      <span style={{ color: "rgba(0,0,0,0.20)" }}>&mdash;</span>
                     ) : (
                       <ExposureBar
                         breakdown={ve.breakdown}
@@ -337,9 +328,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   </td>
                   <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
                     {isPending ? (
-                      <span style={{ color: "rgba(255,255,255,0.20)" }}>
-                        pending
-                      </span>
+                      <span style={{ color: "rgba(0,0,0,0.20)" }}>pending</span>
                     ) : (
                       <span
                         style={{
@@ -352,10 +341,10 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   </td>
                   <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
                     {isPending ? (
-                      <span style={{ color: "rgba(255,255,255,0.20)" }}>—</span>
+                      <span style={{ color: "rgba(0,0,0,0.20)" }}>&mdash;</span>
                     ) : (
-                      <span style={{ color: "rgba(255,255,255,0.70)" }}>
-                        {formatUsd(ve.toxicExposureUsd)}
+                      <span style={{ color: "rgba(0,0,0,0.70)" }}>
+                        {formatUsdCompact(ve.toxicExposureUsd)}
                       </span>
                     )}
                   </td>
@@ -373,7 +362,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                 <td
                   colSpan={7}
                   className="px-4 py-10 text-center text-sm"
-                  style={{ color: "rgba(255,255,255,0.30)" }}
+                  style={{ color: "rgba(0,0,0,0.30)" }}
                 >
                   No vaults match the current filters.
                 </td>
@@ -385,7 +374,7 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
 
       <p
         className="mt-2 text-xs text-right"
-        style={{ color: "rgba(255,255,255,0.20)" }}
+        style={{ color: "rgba(0,0,0,0.20)" }}
       >
         {sorted.length} of {vaults.length} vaults
       </p>
