@@ -38,3 +38,17 @@
 **Why:** Gearbox has USR as allowed collateral in USDC lending pools.
 **Context:** No public API or subgraph. Data must come from on-chain MarketCompressor and CreditAccountCompressor contracts via RPC. Docs at `docs.gearbox.finance/dev/utilities/compressors`. The project has `viem` installed for on-chain reads. Medium effort.
 **Depends on:** Contract addresses from `dev.gearbox.fi` state JSON files.
+
+## Inverse Finance — exposure data collection
+
+**What:** Fetch wstUSR exposure from Inverse Finance's FiRM lending markets.
+**Why:** FiRM directly accepts DOLA/wstUSR LP tokens as collateral with a $50M debt ceiling ($40M Convex + $10M Yearn). Direct wstUSR exposure, not through Morpho/Euler. Bad debt amount is unknown — exploit is hours old, no official figure yet.
+**Context:** Live data at `inverse.finance/transparency/bad-debts` and `inverse.finance/firm/USR-DOLA` but requires JS rendering. On-chain FiRM Market contracts on Ethereum can be read via viem. Governance proposal #329 shifted full $50M ceiling to DOLA/wstUSR markets.
+**Depends on:** FiRM contract addresses on Ethereum.
+
+## Fluid — on-chain data collection
+
+**What:** Build on-chain resolver script to fetch wstUSR vault data from Fluid across 4 chains.
+**Why:** Currently hardcoded from UI screenshot. Should be automated for live updates.
+**Context:** No REST API. Fluid uses on-chain resolver contracts (FluidVaultPositionsResolver, FluidVaultResolver) on Ethereum, Arbitrum, Base, Plasma. Dune dashboard exists at `dune.com/tobyleung/fluid` but API requires paid plan.
+**Depends on:** Fluid resolver contract addresses per chain.
