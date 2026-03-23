@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AreaChart,
   Area,
@@ -31,10 +31,12 @@ export function PriceChart() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
     async function fetchPrices() {
       try {
         const res = await fetch(
           `https://api.coingecko.com/api/v3/coins/${COINGECKO_ID}/market_chart?vs_currency=usd&days=30`,
+          { signal: controller.signal },
         );
         const json = await res.json();
         const points: PricePoint[] = json.prices.map(
@@ -45,27 +47,33 @@ export function PriceChart() {
         );
         setData(points);
       } catch (err) {
-        console.error("Failed to fetch USR price data:", err);
+        if ((err as Error).name !== "AbortError") {
+          console.error("Failed to fetch USR price data:", err);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
     fetchPrices();
+    return () => controller.abort();
   }, []);
 
-  // Filter data by selected range
-  const now = Date.now();
-  const cutoff = now - RANGE_DAYS[activeRange] * 24 * 60 * 60 * 1000;
-  const filtered = data.filter((p) => p.timestamp >= cutoff);
+  const filtered = useMemo(() => {
+    const cutoff = Date.now() - RANGE_DAYS[activeRange] * 24 * 60 * 60 * 1000;
+    return data.filter((p) => p.timestamp >= cutoff);
+  }, [data, activeRange]);
 
-  // Current price and 24h change
-  const currentPrice = data.length > 0 ? data[data.length - 1].price : 0;
-  const oneDayAgo = now - 24 * 60 * 60 * 1000;
-  const dayAgoPoint = data.find((p) => p.timestamp >= oneDayAgo);
-  const priceChange24h =
-    dayAgoPoint && dayAgoPoint.price > 0
-      ? ((currentPrice - dayAgoPoint.price) / dayAgoPoint.price) * 100
-      : 0;
+  const { currentPrice, priceChange24h } = useMemo(() => {
+    if (data.length === 0) return { currentPrice: 0, priceChange24h: 0 };
+    const price = data[data.length - 1].price;
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const dayAgoPoint = data.find((p) => p.timestamp >= oneDayAgo);
+    const change =
+      dayAgoPoint && dayAgoPoint.price > 0
+        ? ((price - dayAgoPoint.price) / dayAgoPoint.price) * 100
+        : 0;
+    return { currentPrice: price, priceChange24h: change };
+  }, [data]);
 
   const isDown = priceChange24h < 0;
   const changeColor = isDown ? "#E11D48" : "#00A35C";
@@ -210,7 +218,6 @@ export function PriceChart() {
                 letterSpacing: "0.08em",
                 textTransform: "uppercase" as const,
                 border: active ? "none" : "1px solid rgba(0,0,0,0.08)",
-                cursor: "pointer",
               }}
             >
               {range}

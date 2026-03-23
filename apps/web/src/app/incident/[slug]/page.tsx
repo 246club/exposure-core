@@ -230,8 +230,6 @@ export default async function IncidentPage({
     .sort((a, b) => b.exposurePct - a.exposurePct)[0];
 
   // Token icon path helper
-  const tokenIconPath = (symbol: string): string | null => getAssetIcon(symbol);
-
   // Donut chart data
   const assetEntries = Object.entries(summary.byAsset).sort(
     ([, a], [, b]) => b.exposureUsd - a.exposureUsd,
@@ -248,7 +246,7 @@ export default async function IncidentPage({
       symbol,
       exposureUsd,
       color: assetColorBySymbol[symbol] ?? "#999",
-      iconPath: tokenIconPath(symbol),
+      iconPath: getAssetIcon(symbol),
     }),
   );
 

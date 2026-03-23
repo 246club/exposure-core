@@ -50,6 +50,29 @@ const CURATOR_ICN: Record<string, string> = {
   steakhouse: ICN("steakhouse"),
 };
 
+const PROTOCOL_DISPLAY: Record<
+  string,
+  { name: string; initials: string; color: string }
+> = {
+  morpho: { name: "Morpho", initials: "M", color: "#2563eb" },
+  euler: { name: "Euler", initials: "E", color: "#e04040" },
+  midas: { name: "Midas", initials: "Mi", color: "#8b5cf6" },
+  inverse: { name: "Inverse Finance", initials: "IN", color: "#000000" },
+  fluid: { name: "Fluid", initials: "FL", color: "#3b82f6" },
+  gearbox: { name: "Gearbox", initials: "G", color: "#4a4a4a" },
+  yo: { name: "YO", initials: "YO", color: "#6366f1" },
+  venus: { name: "Venus", initials: "V", color: "#f59e0b" },
+  "lista-dao": { name: "Lista DAO", initials: "L", color: "#3b82f6" },
+  upshift: { name: "Upshift", initials: "U", color: "#8b5cf6" },
+};
+
+const CHAIN_DISPLAY: Record<string, string> = {
+  eth: "Ethereum",
+  base: "Base",
+  arb: "Arbitrum",
+  plasma: "Plasma",
+};
+
 export function getProtocolIcon(protocol: string): string {
   return PROTOCOL_ICN[protocol] ?? ICN(protocol);
 }
@@ -60,6 +83,20 @@ export function getChainIcon(chain: string): string {
 
 export function getAssetIcon(symbol: string): string | null {
   return ASSET_ICN[symbol.toLowerCase()] ?? null;
+}
+
+export function getProtocolDisplay(protocol: string) {
+  return (
+    PROTOCOL_DISPLAY[protocol] ?? {
+      name: protocol.charAt(0).toUpperCase() + protocol.slice(1),
+      initials: protocol.slice(0, 2).toUpperCase(),
+      color: "#888",
+    }
+  );
+}
+
+export function getChainDisplayName(chain: string): string {
+  return CHAIN_DISPLAY[chain] ?? chain.toUpperCase();
 }
 
 export function getCuratorIcon(curator: string): string | null {

@@ -574,7 +574,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
     });
   }, [filtered, sortColumn, sortDirection]);
 
-  function SortIndicator({ col }: { col: SortColumn }) {
+  const renderSortIndicator = (col: SortColumn) => {
     if (sortColumn !== col)
       return (
         <span style={{ color: "rgba(0,0,0,0.20)" }} className="ml-1">
@@ -586,7 +586,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
         {sortDirection === "asc" ? "\u25B2" : "\u25BC"}
       </span>
     );
-  }
+  };
 
   return (
     <div>
@@ -598,7 +598,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           active={activeProtocols}
           onToggle={(v) => toggleFilter(setActiveProtocols, v)}
           capitalize
-          logoPath={(opt) => getProtocolIcon(opt)}
+          logoPath={getProtocolIcon}
         />
         <FilterDropdown
           label="Chain"
@@ -606,7 +606,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           active={activeChains}
           onToggle={(v) => toggleFilter(setActiveChains, v)}
           uppercase
-          logoPath={(opt) => getChainIcon(opt)}
+          logoPath={getChainIcon}
         />
         <FilterDropdown
           label="Status"
@@ -667,7 +667,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                 onClick={() => handleSort("exposureUsd")}
               >
                 At-Risk
-                <SortIndicator col="exposureUsd" />
+                {renderSortIndicator("exposureUsd")}
               </th>
               <th className="px-4 py-3 text-left whitespace-nowrap">
                 Exposure
@@ -676,15 +676,14 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                 className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("exposurePct")}
               >
-                %
-                <SortIndicator col="exposurePct" />
+                %{renderSortIndicator("exposurePct")}
               </th>
               <th
                 className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("status")}
               >
                 Status
-                <SortIndicator col="status" />
+                {renderSortIndicator("status")}
               </th>
             </tr>
           </thead>
@@ -694,14 +693,8 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
               return (
                 <tr
                   key={i}
-                  className="transition-colors"
+                  className="transition-colors hover:bg-black/[0.02]"
                   style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.02)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor = "transparent")
-                  }
                 >
                   {/* Network */}
                   <td
