@@ -28,7 +28,7 @@ export interface VaultBase {
   protocol: string;
   chains: string[];
   curator?: string;
-  status: "affected" | "covering" | "unknown";
+  status: "affected" | "covering";
   statusNote?: string;
   statusSource?: string;
 }

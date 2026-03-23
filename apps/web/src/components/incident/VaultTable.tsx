@@ -22,7 +22,6 @@ type SortDirection = "asc" | "desc";
 const STATUS_ORDER: Record<string, number> = {
   affected: 0,
   covering: 1,
-  unknown: 2,
 };
 
 const PROTOCOL_FALLBACK: Record<string, { initials: string; color: string }> = {
@@ -490,7 +489,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   <td className="px-4 py-3">
                     {isPending ? (
                       <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
-                        unknown
+                        pending
                       </span>
                     ) : (
                       <div className="flex items-center gap-3">

@@ -241,7 +241,7 @@ const config: IncidentConfig = {
       name: "DOLA",
       protocol: "inverse",
       chains: ["eth"],
-      status: "unknown",
+      status: "affected",
       statusNote:
         "FiRM accepts DOLA/wstUSR LP as collateral ($50M ceiling). Direct wstUSR exposure. Bad debt amount TBD.",
       exposureUsd: 0,
@@ -252,7 +252,7 @@ const config: IncidentConfig = {
       name: "Gearbox USDC",
       protocol: "gearbox",
       chains: ["eth"],
-      status: "unknown",
+      status: "affected",
       statusNote:
         "USR accepted as collateral in USDC lending pools. Exposure amount TBD.",
       exposureUsd: 0,
@@ -327,7 +327,7 @@ const config: IncidentConfig = {
       name: "mEDGE",
       protocol: "midas",
       chains: ["eth"],
-      status: "unknown",
+      status: "affected",
       statusNote: "No exposure identified",
       exposureUsd: 0,
       toxicAssetBreakdown: [],

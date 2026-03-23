@@ -1,52 +1,41 @@
 "use client";
 
 interface StatusBadgeProps {
-  status: "affected" | "covering" | "pending" | "unknown";
+  status: "affected" | "covering" | "pending";
 }
 
 const STATUS_CONFIG: Record<
   StatusBadgeProps["status"],
-  { dotColor: string; bg: string; textColor: string; label: string }
+  { dotColor: string; textColor: string; label: string }
 > = {
   affected: {
     dotColor: "#E11D48",
-    bg: "transparent",
     textColor: "rgba(0,0,0,0.55)",
     label: "Affected",
   },
   covering: {
     dotColor: "#2563eb",
-    bg: "transparent",
     textColor: "rgba(0,0,0,0.55)",
     label: "Covering",
   },
   pending: {
     dotColor: "rgba(0,0,0,0.2)",
-    bg: "transparent",
     textColor: "rgba(0,0,0,0.3)",
-    label: "Unknown",
-  },
-  unknown: {
-    dotColor: "rgba(0,0,0,0.2)",
-    bg: "transparent",
-    textColor: "rgba(0,0,0,0.3)",
-    label: "Unknown",
+    label: "Pending",
   },
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.unknown;
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full"
+      className="inline-flex items-center gap-1.5"
       style={{
-        backgroundColor: config.bg,
         color: config.textColor,
         fontSize: 9,
         fontWeight: 600,
         letterSpacing: "0.04em",
-        padding: "3px 10px 3px 8px",
       }}
     >
       <span

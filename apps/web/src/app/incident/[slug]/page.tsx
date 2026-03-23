@@ -484,7 +484,7 @@ export default async function IncidentPage({
             {/* Exposure by Protocol */}
             <div className="bg-white px-5 py-4">
               {panelHeader("Exposure by Protocol")}
-              <div className="space-y-1 max-h-[400px] overflow-y-auto">
+              <div className="space-y-1">
                 {sortedProtocols.map(([protocol, data]) => {
                   const display = PROTOCOL_DISPLAY[protocol] ?? {
                     color: "#888",
