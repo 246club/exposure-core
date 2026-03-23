@@ -95,6 +95,29 @@ const CHAIN_NAMES: Record<string, string> = {
   plasma: "Plasma",
 };
 
+function LogoWithTooltip({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="relative group/tip inline-flex">
+      {children}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 px-2 py-1 rounded text-[10px] font-medium whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50"
+        style={{
+          backgroundColor: "#1a1a1a",
+          color: "#fff",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
 function ChainLogo({ chain }: { chain: string }) {
   const [imgError, setImgError] = useState(false);
   const displayName = CHAIN_NAMES[chain] ?? chain.toUpperCase();
@@ -107,7 +130,6 @@ function ChainLogo({ chain }: { chain: string }) {
           backgroundColor: "rgba(0,0,0,0.04)",
           color: "rgba(0,0,0,0.50)",
         }}
-        title={displayName}
       >
         {chain}
       </span>
@@ -115,13 +137,14 @@ function ChainLogo({ chain }: { chain: string }) {
   }
 
   return (
-    <img
-      src={getChainIcon(chain)}
-      alt={displayName}
-      title={displayName}
-      className="w-4 h-4"
-      onError={() => setImgError(true)}
-    />
+    <LogoWithTooltip label={displayName}>
+      <img
+        src={getChainIcon(chain)}
+        alt={displayName}
+        className="w-5 h-5"
+        onError={() => setImgError(true)}
+      />
+    </LogoWithTooltip>
   );
 }
 
@@ -150,26 +173,28 @@ function ProtocolLogo({ protocol }: { protocol: string }) {
 
   if (imgError) {
     return (
-      <div
-        title={displayName}
-        className="w-5 h-5 rounded flex items-center justify-center"
-        style={{ backgroundColor: fb.color }}
-      >
-        <span className="text-white font-black" style={{ fontSize: 8 }}>
-          {fb.initials}
-        </span>
-      </div>
+      <LogoWithTooltip label={displayName}>
+        <div
+          className="w-5 h-5 rounded flex items-center justify-center"
+          style={{ backgroundColor: fb.color }}
+        >
+          <span className="text-white font-black" style={{ fontSize: 8 }}>
+            {fb.initials}
+          </span>
+        </div>
+      </LogoWithTooltip>
     );
   }
 
   return (
-    <img
-      src={getProtocolIcon(protocol)}
-      alt={displayName}
-      title={displayName}
-      className="w-5 h-5"
-      onError={() => setImgError(true)}
-    />
+    <LogoWithTooltip label={displayName}>
+      <img
+        src={getProtocolIcon(protocol)}
+        alt={displayName}
+        className="w-5 h-5"
+        onError={() => setImgError(true)}
+      />
+    </LogoWithTooltip>
   );
 }
 
@@ -607,37 +632,38 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
 
       {/* Table */}
       <div
-        className="overflow-x-auto rounded-lg"
+        className="rounded-lg"
         style={{ border: "1px solid rgba(0,0,0,0.06)" }}
       >
         <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "28%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "7%" }} />
+            <col style={{ width: "26%" }} />
             <col style={{ width: "14%" }} />
             <col style={{ width: "14%" }} />
             <col style={{ width: "16%" }} />
             <col style={{ width: "16%" }} />
           </colgroup>
           <thead
-            className="sticky top-0 z-10 text-xs uppercase"
+            className="sticky top-0 z-10 uppercase"
             style={{
               backgroundColor: "rgba(0,0,0,0.03)",
               borderBottom: "1px solid rgba(0,0,0,0.06)",
               color: "rgba(0,0,0,0.30)",
+              fontSize: 10,
               fontWeight: 300,
               letterSpacing: "0.06em",
             }}
           >
             <tr>
-              <th className="px-4 py-3 text-left whitespace-nowrap">Network</th>
-              <th className="px-4 py-3 text-left whitespace-nowrap">
+              <th className="px-3 py-3 text-left whitespace-nowrap">Network</th>
+              <th className="px-3 py-3 text-left whitespace-nowrap">
                 Protocol
               </th>
               <th className="px-4 py-3 text-left whitespace-nowrap">Vault</th>
               <th
-                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
+                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("exposureUsd")}
               >
                 At-Risk
@@ -678,7 +704,12 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   }
                 >
                   {/* Network */}
-                  <td className="px-4 py-3">
+                  <td
+                    className="px-3 py-3"
+                    title={ve.vault.chains
+                      .map((c) => CHAIN_NAMES[c] ?? c.toUpperCase())
+                      .join(", ")}
+                  >
                     <div className="flex flex-wrap gap-1">
                       {ve.vault.chains.map((c) => (
                         <ChainLogo key={c} chain={c} />
@@ -686,7 +717,12 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                     </div>
                   </td>
                   {/* Protocol */}
-                  <td className="px-4 py-3">
+                  <td
+                    className="px-3 py-3"
+                    title={
+                      PROTOCOL_NAMES[ve.vault.protocol] ?? ve.vault.protocol
+                    }
+                  >
                     <ProtocolLogo protocol={ve.vault.protocol} />
                   </td>
                   {/* Vault */}
@@ -702,13 +738,13 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                     </div>
                   </td>
                   {/* At-Risk */}
-                  <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
+                  <td className="px-4 py-3 text-left font-mono whitespace-nowrap">
                     {isPending ? (
                       <span style={{ color: "rgba(0,0,0,0.20)", fontSize: 11 }}>
                         unknown
                       </span>
                     ) : (
-                      <div>
+                      <div style={{ lineHeight: 1.4 }}>
                         <span
                           style={{ fontSize: 12, color: "rgba(0,0,0,0.70)" }}
                         >
@@ -724,10 +760,18 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                             )?.toUpperCase() ?? "USD"}
                           </span>
                         </span>
-                        <div
-                          style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }}
-                        >
-                          {formatUsdCompact(ve.toxicExposureUsd)}
+                        <div>
+                          <span
+                            className="inline-block rounded mt-0.5"
+                            style={{
+                              fontSize: 10,
+                              color: "rgba(0,0,0,0.35)",
+                              backgroundColor: "rgba(0,0,0,0.04)",
+                              padding: "1px 5px",
+                            }}
+                          >
+                            {formatUsdCompact(ve.toxicExposureUsd)}
+                          </span>
                         </div>
                       </div>
                     )}

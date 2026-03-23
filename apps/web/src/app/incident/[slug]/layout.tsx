@@ -13,6 +13,9 @@ export async function generateMetadata({
   return {
     title: `${config.title} — Exposure`,
     description: config.description,
+    icons: {
+      icon: "/logos/icn/icn-usr.png",
+    },
     openGraph: {
       title: `${config.title} — Exposure`,
       description: config.description,

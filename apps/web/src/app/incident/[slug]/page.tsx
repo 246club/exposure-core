@@ -340,7 +340,7 @@ export default async function IncidentPage({
       },
     },
     {
-      date: "Mar 22, 2026",
+      date: "Mar 22, 2026 · 08:17 UTC",
       tag: "response" as const,
       text: "Stani Kulechov confirms Aave has no exposure to USR; Resolv backing assets remain safe.",
       details: {
@@ -415,7 +415,7 @@ export default async function IncidentPage({
       },
     },
     {
-      date: "Mar 22, 2026",
+      date: "Mar 22, 2026 · 14:31 UTC",
       tag: "update" as const,
       text: "Ash maps the full contagion: compromised operator key, 80M unbacked USR minted for $100K, $25M extracted.",
       details: {
@@ -430,7 +430,7 @@ export default async function IncidentPage({
       },
     },
     {
-      date: "Mar 22, 2026",
+      date: "Mar 22, 2026 · 17:37 UTC",
       tag: "update" as const,
       text: "Omer Goldberg (Chaos Labs) analyzes contagion — USR used as collateral across multiple lending markets without risk guardrails.",
       details: {
@@ -451,7 +451,7 @@ export default async function IncidentPage({
       },
     },
     {
-      date: "Mar 22, 2026",
+      date: "Mar 22, 2026 · 03:30 UTC",
       tag: "curator" as const,
       text: "Steakhouse Financial confirms zero exposure across all vaults; was not allocating to RLP.",
       details: {
@@ -483,7 +483,7 @@ export default async function IncidentPage({
       },
     },
     {
-      date: "Mar 22, 2026",
+      date: "Mar 22, 2026 · 17:30 UTC",
       tag: "update" as const,
       text: "DefiMoon reports $334M in Fluid outflows — biggest daily outflow since protocol launch.",
       details: {
@@ -572,11 +572,11 @@ export default async function IncidentPage({
       },
     },
     {
-      date: "Mar 23, 2026",
+      date: "Mar 23, 2026 · 08:00 UTC",
       tag: "update" as const,
       text: "Exposure Core contagion dashboard launched with 29+ affected vaults tracked.",
     },
-  ];
+  ].reverse();
 
   const timestamp = formatDate(summary.dataTimestamp);
 
@@ -760,10 +760,11 @@ export default async function IncidentPage({
                             ? formatUsdCompact(data.exposureUsd)
                             : "Unknown"
                         }
-                        exposureBar={protocolBreakdown.map((b) => ({
+                        breakdown={protocolBreakdown.map((b) => ({
+                          asset: b.asset,
+                          amountUsd: b.amountUsd,
                           color:
                             assetColorBySymbol[b.asset] ?? "rgba(0,0,0,0.15)",
-                          width: `${Math.min(b.pct * 100, 100)}%`,
                         }))}
                       />
                     </div>
