@@ -24,6 +24,9 @@ const CHAIN_ICN: Record<string, string> = {
   base: ICN("base"),
   arb: ICN("arbitrum"),
   plasma: ICN("plasma"),
+  bsc: ICN("bsc"),
+  hyperevm: ICN("hyperevm"),
+  tac: ICN("tac"),
 };
 
 const ASSET_ICN: Record<string, string> = {
