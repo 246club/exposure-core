@@ -574,7 +574,14 @@ export default async function IncidentPage({
       tag: "update" as const,
       text: "Exposure Core contagion dashboard launched with 29+ affected vaults tracked.",
     },
-  ].reverse();
+  ].sort((a, b) => {
+    // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
+    const parse = (d: string) => {
+      const clean = d.replace(" · ", " ").replace(" UTC", "");
+      return new Date(clean).getTime() || 0;
+    };
+    return parse(b.date) - parse(a.date); // newest first
+  });
 
   const timestamp = formatDate(summary.dataTimestamp);
 

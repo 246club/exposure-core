@@ -29,6 +29,7 @@ export function PriceChart() {
   const [data, setData] = useState<PricePoint[]>([]);
   const [activeRange, setActiveRange] = useState<TimeRange>("7D");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -38,7 +39,9 @@ export function PriceChart() {
           `https://api.coingecko.com/api/v3/coins/${COINGECKO_ID}/market_chart?vs_currency=usd&days=30`,
           { signal: controller.signal },
         );
+        if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
         const json = await res.json();
+        if (!Array.isArray(json.prices)) throw new Error("Unexpected response");
         const points: PricePoint[] = json.prices.map(
           ([timestamp, price]: [number, number]) => ({
             timestamp,
@@ -49,6 +52,7 @@ export function PriceChart() {
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           console.error("Failed to fetch USR price data:", err);
+          if (!controller.signal.aborted) setError(true);
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -129,6 +133,13 @@ export function PriceChart() {
           >
             Loading…
           </div>
+        ) : error ? (
+          <div
+            className="flex items-center justify-center h-full"
+            style={{ color: "rgba(0,0,0,0.25)", fontSize: 11 }}
+          >
+            Price data unavailable
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={120}>
             <AreaChart data={filtered}>
@@ -158,7 +169,7 @@ export function PriceChart() {
                 minTickGap={40}
               />
               <YAxis
-                domain={[0, 1]}
+                domain={[0, 1.05]}
                 tick={{ fontSize: 9, fill: "rgba(0,0,0,0.3)" }}
                 axisLine={false}
                 tickLine={false}

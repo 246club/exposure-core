@@ -9,8 +9,12 @@ export async function loadIncidentConfig(
 ): Promise<IncidentConfig | null> {
   const loader = configs[slug];
   if (!loader) return null;
-  const mod = await loader();
-  return mod.default;
+  try {
+    const mod = await loader();
+    return mod.default;
+  } catch {
+    return null;
+  }
 }
 
 export function getKnownSlugs(): string[] {

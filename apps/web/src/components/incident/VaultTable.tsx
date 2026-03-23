@@ -688,11 +688,11 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((ve, i) => {
+            {sorted.map((ve) => {
               const isPending = ve.status === "pending";
               return (
                 <tr
-                  key={i}
+                  key={`${ve.vault.protocol}-${ve.vault.name}`}
                   className="transition-colors hover:bg-black/[0.02]"
                   style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}
                 >
