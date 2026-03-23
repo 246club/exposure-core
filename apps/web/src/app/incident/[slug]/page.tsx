@@ -738,6 +738,21 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 23, 2026 · 12:44 UTC",
+      tag: "response" as const,
+      text: "Lito confirms no bad debt on Venus Flux or Fluid Plasma — wstUSR positions pre-hack, will be fully restored by Resolv.",
+      details: {
+        tweets: [
+          {
+            author: "lito",
+            handle: "@litocoen",
+            text: "there's no bad debt anywhere besides on ethereum and even that is covered as per Fluid's latest announcement. Those positions on both chains were opened pre-hack and will thus be fully restored by the Resolv team.",
+            url: "https://x.com/litocoen/status/2036061510053867951",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 23, 2026 · 18:41 UTC",
       tag: "response" as const,
       text: "Resolv Labs enables redemptions for pre-incident USR for allowlisted users.",
