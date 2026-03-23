@@ -71,6 +71,9 @@ const CHAIN_DISPLAY: Record<string, string> = {
   base: "Base",
   arb: "Arbitrum",
   plasma: "Plasma",
+  hyperevm: "HyperEVM",
+  bsc: "BSC",
+  tac: "TAC",
 };
 
 export function getProtocolIcon(protocol: string): string {
