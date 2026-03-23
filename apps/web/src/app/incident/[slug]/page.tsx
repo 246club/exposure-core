@@ -271,13 +271,11 @@ export default async function IncidentPage({
       (sum, v) => sum + v.exposureUsd,
       0,
     );
-    if (totalUsd === 0) return [];
 
     return Object.entries(byKey)
-      .filter(([, { exposureUsd }]) => exposureUsd > 0)
       .map(([key, { exposureUsd }]) => ({
         name: getLabel(key),
-        value: (exposureUsd / totalUsd) * 100,
+        value: totalUsd > 0 ? (exposureUsd / totalUsd) * 100 : 0,
         iconSrc: getIcon(key),
       }))
       .sort((a, b) => b.value - a.value);
