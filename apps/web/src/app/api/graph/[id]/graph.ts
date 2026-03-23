@@ -57,14 +57,18 @@ export function getDirectChildren(
   allEdges: GraphEdge[],
 ): GraphChild[] {
   const outgoingEdges = allEdges.filter((e) => e.from === parentNode.id);
+  const validOutgoingEdges = outgoingEdges.filter((edge) => {
+    const value = Math.abs(edge.allocationUsd);
+    return Number.isFinite(value) && value > 0;
+  });
 
-  const totalValue = outgoingEdges.reduce(
+  const totalValue = validOutgoingEdges.reduce(
     (sum, e) => sum + Math.abs(e.allocationUsd),
     0,
   );
   const safeTotal = totalValue || 1; // Prevent division by zero
 
-  return outgoingEdges
+  return validOutgoingEdges
     .map((edge) => {
       const targetNode = allNodes.find((n) => n.id === edge.to);
       const value = Math.abs(edge.allocationUsd);
