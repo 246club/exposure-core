@@ -79,8 +79,8 @@ const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
   euler: { color: "#e04040", initials: "E" },
   midas: { color: "#8b5cf6", initials: "Mi" },
   inverse: { color: "#000000", initials: "IN" },
-  fluid: { color: "#1a8fa8", initials: "FL" },
-  gearbox: { color: "#7c3aed", initials: "GB" },
+  fluid: { color: "#3b82f6", initials: "FL" },
+  gearbox: { color: "#4a4a4a", initials: "G" },
 };
 
 export default async function DashboardPage({

@@ -12,7 +12,6 @@ interface IncidentNavProps {
 const NAV_ITEMS = [
   { label: "Overview", href: (slug: string) => `/incident/${slug}` },
   { label: "Data", href: (slug: string) => `/incident/${slug}/dashboard` },
-  { label: "Timeline", href: (slug: string) => `/incident/${slug}/timeline` },
 ] as const;
 
 export function IncidentNav({ title, slug }: IncidentNavProps) {
@@ -83,7 +82,7 @@ export function IncidentNav({ title, slug }: IncidentNavProps) {
           })}
         </nav>
 
-        {/* Right: active indicator + back */}
+        {/* Right: active indicator */}
         <div className="flex items-center gap-3 shrink-0">
           <div className="hidden sm:flex items-center gap-1.5">
             <span className="relative flex" style={{ width: 6, height: 6 }}>
@@ -103,22 +102,6 @@ export function IncidentNav({ title, slug }: IncidentNavProps) {
               Active
             </span>
           </div>
-
-          <Link
-            href="/"
-            className="hidden md:flex items-center rounded-full transition-all duration-200 hover:border-black/20"
-            style={{
-              padding: "5px 14px",
-              border: "1px solid rgba(0,0,0,0.08)",
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "rgba(0,0,0,0.35)",
-            }}
-          >
-            Back
-          </Link>
         </div>
       </div>
     </header>

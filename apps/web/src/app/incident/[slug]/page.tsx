@@ -96,8 +96,8 @@ const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
   euler: { color: "#e04040", initials: "E" },
   midas: { color: "#8b5cf6", initials: "Mi" },
   inverse: { color: "#000000", initials: "IN" },
-  fluid: { color: "#1a8fa8", initials: "FL" },
-  gearbox: { color: "#7c3aed", initials: "GB" },
+  fluid: { color: "#3b82f6", initials: "FL" },
+  gearbox: { color: "#4a4a4a", initials: "G" },
 };
 
 export default async function IncidentPage({
@@ -296,11 +296,15 @@ export default async function IncidentPage({
     return map[key] ?? null;
   };
 
-  // Count covering protocols for BadDebtPanel
-  const coveringProtocols = new Set(
-    vaults
-      .filter((ve) => ve.vault.status === "covering")
-      .map((ve) => ve.vault.protocol),
+  // Covering protocols for BadDebtPanel
+  const coveringProtocolsMap = new Map<string, string>();
+  for (const ve of vaults) {
+    if (ve.vault.status === "covering") {
+      coveringProtocolsMap.set(ve.vault.protocol, ve.vault.name);
+    }
+  }
+  const coveringProtocolsList = Array.from(coveringProtocolsMap.entries()).map(
+    ([protocol, name]) => ({ name, protocol }),
   );
 
   return (
@@ -377,7 +381,7 @@ export default async function IncidentPage({
                 coveredDebt={0}
                 uncoveredGap={summary.totalToxicExposureUsd}
                 recoveryRate={0}
-                coveringProtocolCount={coveringProtocols.size}
+                coveringProtocols={coveringProtocolsList}
               />
             </div>
 

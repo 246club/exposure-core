@@ -35,8 +35,77 @@ function exposureColor(pct: number): string {
   return "#ef4444";
 }
 
+const PROTOCOL_FALLBACK: Record<string, { initials: string; color: string }> = {
+  morpho: { initials: "M", color: "#2563eb" },
+  euler: { initials: "E", color: "#e04040" },
+  midas: { initials: "Mi", color: "#8b5cf6" },
+  inverse: { initials: "IN", color: "#000000" },
+  fluid: { initials: "FL", color: "#3b82f6" },
+  gearbox: { initials: "G", color: "#4a4a4a" },
+};
+
+function ProtocolLogo({ protocol }: { protocol: string }) {
+  const [imgError, setImgError] = useState(false);
+  const fb = PROTOCOL_FALLBACK[protocol] ?? {
+    initials: protocol.slice(0, 2).toUpperCase(),
+    color: "#888",
+  };
+
+  if (imgError) {
+    return (
+      <div
+        title={protocol}
+        className="w-5 h-5 rounded flex items-center justify-center"
+        style={{ backgroundColor: fb.color }}
+      >
+        <span className="text-white font-black" style={{ fontSize: 8 }}>
+          {fb.initials}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`/logos/protocols/${protocol}.svg`}
+      alt={protocol}
+      title={protocol}
+      className="w-5 h-5"
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
+function ChainLogo({ chain }: { chain: string }) {
+  const [imgError, setImgError] = useState(false);
+
+  if (imgError) {
+    return (
+      <span
+        className="rounded px-1.5 py-0.5 text-xs font-mono uppercase"
+        style={{
+          backgroundColor: "rgba(0,0,0,0.04)",
+          color: "rgba(0,0,0,0.50)",
+        }}
+      >
+        {chain}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={`/logos/chains/${chain}.svg`}
+      alt={chain}
+      title={chain}
+      className="w-4 h-4"
+      onError={() => setImgError(true)}
+    />
+  );
+}
+
 export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
-  const [sortColumn, setSortColumn] = useState<SortColumn>("exposurePct");
+  const [sortColumn, setSortColumn] = useState<SortColumn>("exposureUsd");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [search, setSearch] = useState("");
   const [activeProtocols, setActiveProtocols] = useState<Set<string>>(
@@ -284,34 +353,31 @@ export function VaultTable({ vaults, toxicAssets, slug }: VaultTableProps) {
                   <td className="px-4 py-3">
                     <Link
                       href={`/incident/${slug}/vault/${slugifyVaultName(ve.vault.name)}`}
-                      className="block hover:text-black/70 transition-colors"
+                      className="flex items-center gap-2 hover:text-black/70 transition-colors"
                     >
-                      <span className="font-medium text-black">
-                        {ve.vault.name}
-                      </span>
+                      <ProtocolLogo protocol={ve.vault.protocol} />
+                      <div className="min-w-0">
+                        <span className="font-medium text-black block truncate">
+                          {ve.vault.name}
+                        </span>
+                        {ve.vault.curator && (
+                          <span
+                            className="block truncate"
+                            style={{ fontSize: 10, color: "rgba(0,0,0,0.35)" }}
+                          >
+                            {ve.vault.curator}
+                          </span>
+                        )}
+                      </div>
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className="text-sm capitalize"
-                      style={{ color: "rgba(0,0,0,0.50)" }}
-                    >
-                      {ve.vault.protocol}
-                    </span>
+                    <ProtocolLogo protocol={ve.vault.protocol} />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {ve.vault.chains.map((c) => (
-                        <span
-                          key={c}
-                          className="rounded px-1.5 py-0.5 text-xs font-mono uppercase"
-                          style={{
-                            backgroundColor: "rgba(0,0,0,0.04)",
-                            color: "rgba(0,0,0,0.50)",
-                          }}
-                        >
-                          {c}
-                        </span>
+                        <ChainLogo key={c} chain={c} />
                       ))}
                     </div>
                   </td>

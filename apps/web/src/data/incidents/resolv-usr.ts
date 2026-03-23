@@ -9,9 +9,9 @@ const config: IncidentConfig = {
   description:
     "The Resolv Labs USR exploit has created cascading exposure across DeFi vaults and protocols. Vaults with allocations to markets using USR, wstUSR, or RLP as collateral face at-risk capital.",
   toxicAssets: [
-    { symbol: "USR", name: "Resolv USD", color: "#ef4444" },
-    { symbol: "wstUSR", name: "Wrapped Staked USR", color: "#f59e0b" },
-    { symbol: "RLP", name: "Resolv Liquidity Pool", color: "#e8700a" },
+    { symbol: "USR", name: "Resolv USD", color: "#1a8fa8" },
+    { symbol: "wstUSR", name: "Wrapped Staked USR", color: "#6b6b6b" },
+    { symbol: "RLP", name: "Resolv Liquidity Pool", color: "#e89220" },
   ],
   toxicAssetNodeIds: [
     "eth:resolv:0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110",

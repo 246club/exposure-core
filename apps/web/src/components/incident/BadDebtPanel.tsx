@@ -1,13 +1,61 @@
 "use client";
 
+import { useState } from "react";
 import { formatUsdCompact } from "@/lib/incident/format";
+
+export interface CoveringProtocol {
+  name: string;
+  protocol: string;
+}
 
 interface BadDebtPanelProps {
   realizedDebt: number;
   coveredDebt: number;
   uncoveredGap: number;
   recoveryRate: number;
-  coveringProtocolCount?: number;
+  coveringProtocols?: CoveringProtocol[];
+}
+
+const COVERING_FALLBACK: Record<string, { initials: string; color: string }> = {
+  fluid: { initials: "FL", color: "#3b82f6" },
+  inverse: { initials: "IN", color: "#000000" },
+  morpho: { initials: "M", color: "#2563eb" },
+  euler: { initials: "E", color: "#e04040" },
+  midas: { initials: "Mi", color: "#8b5cf6" },
+  gearbox: { initials: "G", color: "#4a4a4a" },
+};
+
+function CoveringLogo({ cp }: { cp: CoveringProtocol }) {
+  const [imgError, setImgError] = useState(false);
+  const fb = COVERING_FALLBACK[cp.protocol] ?? {
+    initials: cp.name.slice(0, 2).toUpperCase(),
+    color: "#888",
+  };
+
+  if (imgError) {
+    return (
+      <div
+        title={cp.name}
+        className="rounded flex items-center justify-center flex-shrink-0"
+        style={{ width: 20, height: 20, backgroundColor: fb.color }}
+      >
+        <span className="text-white font-black" style={{ fontSize: 7 }}>
+          {fb.initials}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`/logos/protocols/${cp.protocol}.svg`}
+      alt={cp.name}
+      title={cp.name}
+      className="flex-shrink-0 rounded"
+      style={{ width: 20, height: 20 }}
+      onError={() => setImgError(true)}
+    />
+  );
 }
 
 function formatPercent(value: number): string {
@@ -19,17 +67,17 @@ export function BadDebtPanel({
   coveredDebt,
   uncoveredGap,
   recoveryRate,
-  coveringProtocolCount = 0,
+  coveringProtocols = [],
 }: BadDebtPanelProps) {
   return (
     <div
       className="grid grid-cols-2"
       style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.05)" }}
     >
-      {/* Realized debt — red tint */}
+      {/* Realized debt — neutral */}
       <div
         className="bg-white p-4"
-        style={{ borderTop: "2px solid rgba(225,29,72,0.20)" }}
+        style={{ borderTop: "2px solid rgba(0,0,0,0.08)" }}
       >
         <p
           className="uppercase font-black mb-1"
@@ -42,17 +90,17 @@ export function BadDebtPanel({
           Realized Debt
         </p>
         <p
-          className="font-mono font-bold tracking-tight"
-          style={{ fontSize: 20, color: "#E11D48" }}
+          className="font-mono font-bold text-black tracking-tight"
+          style={{ fontSize: 20 }}
         >
           {formatUsdCompact(realizedDebt)}
         </p>
       </div>
 
-      {/* Covered debt — green tint */}
+      {/* Covered debt — neutral with protocol logos */}
       <div
         className="bg-white p-4"
-        style={{ borderTop: "2px solid rgba(0,163,92,0.20)" }}
+        style={{ borderTop: "2px solid rgba(0,0,0,0.08)" }}
       >
         <p
           className="uppercase font-black mb-1"
@@ -66,23 +114,21 @@ export function BadDebtPanel({
         </p>
         {coveredDebt > 0 ? (
           <p
-            className="font-mono font-bold tracking-tight"
-            style={{ fontSize: 20, color: "#00A35C" }}
+            className="font-mono font-bold text-black tracking-tight"
+            style={{ fontSize: 20 }}
           >
             {formatUsdCompact(coveredDebt)}
           </p>
-        ) : coveringProtocolCount > 0 ? (
-          <p
-            className="font-mono font-bold tracking-tight"
-            style={{ fontSize: 20, color: "#00A35C" }}
-          >
-            {coveringProtocolCount} protocol
-            {coveringProtocolCount !== 1 ? "s" : ""}
-          </p>
+        ) : coveringProtocols.length > 0 ? (
+          <div className="flex items-center gap-1.5 mt-1">
+            {coveringProtocols.map((cp) => (
+              <CoveringLogo key={cp.protocol} cp={cp} />
+            ))}
+          </div>
         ) : (
           <p
-            className="font-mono font-bold tracking-tight"
-            style={{ fontSize: 20, color: "#00A35C" }}
+            className="font-mono font-bold text-black tracking-tight"
+            style={{ fontSize: 20 }}
           >
             $0
           </p>
