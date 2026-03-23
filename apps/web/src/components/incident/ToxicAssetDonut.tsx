@@ -93,14 +93,28 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
                     style={{
                       backgroundColor: "#fff",
                       border: "1px solid rgba(0,0,0,0.08)",
-                      borderRadius: 6,
-                      padding: "6px 10px",
-                      fontSize: 11,
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 12,
                       boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
                     }}
                   >
-                    <div style={{ fontWeight: 700 }}>{d.symbol}</div>
-                    <div style={{ color: "rgba(0,0,0,0.5)" }}>
+                    <div className="flex items-center gap-2">
+                      {d.iconPath ? (
+                        <img
+                          src={d.iconPath}
+                          alt={d.symbol}
+                          className="w-4 h-4 rounded-full"
+                        />
+                      ) : (
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: d.color }}
+                        />
+                      )}
+                      <span style={{ fontWeight: 700 }}>{d.symbol}</span>
+                    </div>
+                    <div style={{ color: "rgba(0,0,0,0.5)", marginTop: 2 }}>
                       {formatUsdCompact(d.exposureUsd)} ({pct}%)
                     </div>
                   </div>
