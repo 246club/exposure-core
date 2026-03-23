@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { Activity } from "lucide-react";
 
 interface IncidentNavProps {
@@ -43,8 +42,8 @@ export function IncidentNav({ title, lastUpdated }: IncidentNavProps) {
     <header className="sticky top-0 z-50 w-full bg-white border-b border-black">
       <div className="max-w-[1280px] mx-auto flex items-center justify-between gap-4 px-6 h-14">
         {/* Left: brand */}
-        <Link href="/" className="flex items-center gap-3 shrink-0 group">
-          <div className="bg-black rounded-lg w-8 h-8 flex items-center justify-center transition-transform group-hover:scale-105 shadow-lg shadow-black/10">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="bg-black rounded-lg w-8 h-8 flex items-center justify-center shadow-lg shadow-black/10">
             <Activity className="text-[#00FF85] w-4 h-4" />
           </div>
           <div className="flex flex-col -gap-1">
@@ -55,7 +54,7 @@ export function IncidentNav({ title, lastUpdated }: IncidentNavProps) {
               Risk Registry
             </span>
           </div>
-        </Link>
+        </div>
 
         {/* Divider + incident context */}
         <div className="hidden md:flex items-center gap-2.5 shrink-0">
