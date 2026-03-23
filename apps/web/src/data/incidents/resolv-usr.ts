@@ -258,45 +258,69 @@ const config: IncidentConfig = {
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
+    // ─── Fluid wstUSR vaults (Ethereum) ───
+    // Source: fluid.io/stats/1/vaults — scraped 2026-03-23
+    // Total Supplied = wstUSR collateral deposited
+    // To update: check fluid.io/stats/{chainId}/vaults for each chain
     {
       source: "manual",
-      name: "Fluid ETH",
+      name: "Fluid wstUSR/USDC",
       protocol: "fluid",
       chains: ["eth"],
       status: "covering",
       statusNote: "Fluid has announced coverage of bad debt accrued",
-      exposureUsd: 0,
-      toxicAssetBreakdown: [],
+      exposureUsd: 671_622, // Total Supplied: $671,621.91
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 671_622, pct: 1 }],
     },
     {
       source: "manual",
-      name: "Fluid ARB",
+      name: "Fluid wstUSR/USDT",
       protocol: "fluid",
-      chains: ["arb"],
+      chains: ["eth"],
       status: "covering",
       statusNote: "Fluid has announced coverage of bad debt accrued",
-      exposureUsd: 0,
-      toxicAssetBreakdown: [],
+      exposureUsd: 229_271, // Total Supplied: $229,270.64
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 229_271, pct: 1 }],
     },
     {
       source: "manual",
-      name: "Fluid BASE",
+      name: "Fluid wstUSR/GHO",
       protocol: "fluid",
-      chains: ["base"],
+      chains: ["eth"],
       status: "covering",
       statusNote: "Fluid has announced coverage of bad debt accrued",
-      exposureUsd: 0,
-      toxicAssetBreakdown: [],
+      exposureUsd: 150_127, // Total Supplied: $150,127.28
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 150_127, pct: 1 }],
     },
     {
       source: "manual",
-      name: "Fluid Plasma",
+      name: "Fluid wstUSR/USDC-USDT",
       protocol: "fluid",
-      chains: ["plasma"],
+      chains: ["eth"],
       status: "covering",
       statusNote: "Fluid has announced coverage of bad debt accrued",
-      exposureUsd: 0,
-      toxicAssetBreakdown: [],
+      exposureUsd: 13_313, // Total Supplied: $13,313.30
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 13_313, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR-USDC/USDC",
+      protocol: "fluid",
+      chains: ["eth"],
+      status: "covering",
+      statusNote: "Fluid has announced coverage of bad debt accrued",
+      exposureUsd: 11_691, // Total Supplied: $11,690.81
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 11_691, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR-USDC/USDC-USDT",
+      protocol: "fluid",
+      chains: ["eth"],
+      status: "covering",
+      statusNote: "Fluid has announced coverage of bad debt accrued",
+      exposureUsd: 47_152, // Total Supplied: $47,152.05
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 47_152, pct: 1 }],
     },
     {
       source: "manual",
@@ -319,14 +343,20 @@ const config: IncidentConfig = {
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
+    // ─── YO Protocol (yoUSD) ───
+    // Source: api.yo.xyz — fetched 2026-03-23
+    // yoUSD vault on Base allocates 2.87% to Resolv RLP pool
+    // To update: run `tsx --env-file=.env.local server/scripts/incident/fetch-yields.ts`
     {
       source: "manual",
       name: "yoUSD",
       protocol: "yields",
-      chains: ["eth"],
+      chains: ["base"],
       status: "affected",
-      exposureUsd: 0,
-      toxicAssetBreakdown: [],
+      exposureUsd: 1_214_131, // $1,214,131 USDC in Resolv RLP pool (2.87% of vault)
+      toxicAssetBreakdown: [
+        { asset: "RLP", amountUsd: 1_214_131, pct: 0.0287 },
+      ],
     },
     {
       source: "manual",
@@ -346,12 +376,25 @@ const config: IncidentConfig = {
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
+    // ─── Upshift vaults ───
+    // Source: api.upshift.finance — fetched 2026-03-23
+    // To update: run `tsx --env-file=.env.local server/scripts/incident/fetch-upshift.ts`
+    {
+      source: "manual",
+      name: "Resolv USR Yield Maxi",
+      protocol: "upshift",
+      chains: ["eth"],
+      status: "affected",
+      exposureUsd: 1_284_955, // Direct USR exposure — full vault TVL
+      toxicAssetBreakdown: [{ asset: "USR", amountUsd: 1_284_955, pct: 1 }],
+    },
     {
       source: "manual",
       name: "coreUSDC",
       protocol: "upshift",
       chains: ["eth"],
       status: "affected",
+      statusNote: "Meta-vault — USR allocation % unknown. Breakdown TBD.",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
@@ -361,6 +404,7 @@ const config: IncidentConfig = {
       protocol: "upshift",
       chains: ["eth"],
       status: "affected",
+      statusNote: "USR allocation % unknown. Breakdown TBD.",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
@@ -370,6 +414,7 @@ const config: IncidentConfig = {
       protocol: "upshift",
       chains: ["eth"],
       status: "affected",
+      statusNote: "AUSD vault — USR allocation % unknown. Breakdown TBD.",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
