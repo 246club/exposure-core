@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatUsdCompact } from "@/lib/incident/format";
+import { getAssetIcon } from "@/lib/incident/logos";
 export { getCuratorLogoKey } from "@/lib/incident/logos";
 
 interface BreakdownEntry {
@@ -21,7 +22,7 @@ interface ProtocolRowProps {
   breakdown?: BreakdownEntry[];
 }
 
-/** Mini donut chart (SVG) */
+/** Mini donut chart (SVG) with hover tooltip */
 function MiniDonut({
   breakdown,
   total,
@@ -31,6 +32,7 @@ function MiniDonut({
   total: number;
   size?: number;
 }) {
+  const [hover, setHover] = useState(false);
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 3;
@@ -49,11 +51,12 @@ function MiniDonut({
 
   return (
     <div
-      className="relative flex-shrink-0"
+      className="relative flex-shrink-0 cursor-default"
       style={{ width: size, height: size }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
     >
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        {/* Background ring */}
         <circle
           cx={cx}
           cy={cy}
@@ -62,7 +65,6 @@ function MiniDonut({
           stroke="rgba(0,0,0,0.04)"
           strokeWidth={5}
         />
-        {/* Segments */}
         {segments.map((seg) => (
           <circle
             key={seg.asset}
@@ -78,7 +80,6 @@ function MiniDonut({
           />
         ))}
       </svg>
-      {/* Center text */}
       <div className="absolute inset-0 flex items-center justify-center">
         <span
           className="font-mono font-bold"
@@ -87,6 +88,48 @@ function MiniDonut({
           {formatUsdCompact(total)}
         </span>
       </div>
+
+      {/* Tooltip */}
+      {hover && segments.length > 0 && (
+        <div
+          className="absolute right-0 bottom-full mb-2 z-50 rounded-lg py-2 px-3 min-w-[180px]"
+          style={{
+            backgroundColor: "#1a1a1a",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+          }}
+        >
+          {segments.map((seg) => {
+            const icon = getAssetIcon(seg.asset);
+            return (
+              <div
+                key={seg.asset}
+                className="flex items-center justify-between gap-3 py-1"
+              >
+                <div className="flex items-center gap-2">
+                  {icon ? (
+                    <img
+                      src={icon}
+                      alt={seg.asset}
+                      className="w-4 h-4 rounded-full"
+                    />
+                  ) : (
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: seg.color }}
+                    />
+                  )}
+                  <span className="text-white text-xs font-medium">
+                    {seg.asset}
+                  </span>
+                </div>
+                <span className="text-white/60 text-xs font-mono">
+                  {formatUsdCompact(seg.amountUsd)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
