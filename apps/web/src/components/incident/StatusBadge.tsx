@@ -10,17 +10,17 @@ const STATUS_CONFIG: Record<
 > = {
   affected: {
     dotColor: "#E11D48",
-    textColor: "rgba(0,0,0,0.55)",
+    textColor: "var(--text-secondary)",
     label: "Affected",
   },
   covering: {
     dotColor: "#2563eb",
-    textColor: "rgba(0,0,0,0.55)",
+    textColor: "var(--text-secondary)",
     label: "Covering",
   },
   pending: {
-    dotColor: "rgba(0,0,0,0.2)",
-    textColor: "rgba(0,0,0,0.3)",
+    dotColor: "var(--text-tertiary)",
+    textColor: "var(--text-tertiary)",
     label: "Pending",
   },
 };
