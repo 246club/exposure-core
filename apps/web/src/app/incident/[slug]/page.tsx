@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { loadIncidentConfig } from "@/lib/incident/config";
 import { detectToxicExposure } from "@/lib/incident/detection";
 import { loadProtocolSnapshots } from "@/lib/graphLoader";
@@ -11,10 +10,14 @@ import type {
   ToxicBreakdownEntry,
 } from "@/lib/incident/types";
 import type { GraphSnapshot } from "@/types";
-import { NarrativeSection } from "@/components/incident/NarrativeSection";
-import { StatusBadge } from "@/components/incident/StatusBadge";
-import { ExposureBar } from "@/components/incident/ExposureBar";
+import { IncidentBanner } from "@/components/incident/IncidentBanner";
+import { PriceChart } from "@/components/incident/PriceChart";
+import { BadDebtPanel } from "@/components/incident/BadDebtPanel";
+import { MetricCard } from "@/components/incident/MetricCard";
+import { ProtocolRow } from "@/components/incident/ProtocolRow";
+import { TimelinePanel } from "@/components/incident/TimelinePanel";
 import { AnimatedCounter } from "@/components/incident/AnimatedCounter";
+import { VaultTable } from "@/components/incident/VaultTable";
 
 export const revalidate = 600;
 
@@ -95,7 +98,15 @@ function computeSummary(
   };
 }
 
-export default async function IncidentNarrativePage({
+// Protocol display config for logos + fallback
+const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
+  morpho: { color: "#2563eb", initials: "M" },
+  euler: { color: "#e04040", initials: "E" },
+  midas: { color: "#8b5cf6", initials: "Mi" },
+  inverse: { color: "#000000", initials: "IN" },
+};
+
+export default async function IncidentPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -212,78 +223,248 @@ export default async function IncidentNarrativePage({
     ([, a], [, b]) => b.exposureUsd - a.exposureUsd,
   );
 
-  // Timeline in reverse chronological order
-  const reversedTimeline = [...config.timeline].reverse();
+  // Highest exposure % vault
+  const highestPctVault = vaults
+    .filter((ve) => ve.status === "loaded")
+    .sort((a, b) => b.exposurePct - a.exposurePct)[0];
 
-  // Vaults with covering status
-  const coveringVaults = vaults.filter((ve) => ve.vault.status === "covering");
+  // Donut chart: compute conic-gradient from byAsset
+  const assetEntries = Object.entries(summary.byAsset).sort(
+    ([, a], [, b]) => b.exposureUsd - a.exposureUsd,
+  );
+  const assetColorBySymbol = Object.fromEntries(
+    config.toxicAssets.map((a) => [a.symbol, a.color]),
+  );
+  const totalAssetExposure = assetEntries.reduce(
+    (sum, [, v]) => sum + v.exposureUsd,
+    0,
+  );
+  let cumulativeDeg = 0;
+  const conicStops = assetEntries.map(([symbol, { exposureUsd }]) => {
+    const deg =
+      totalAssetExposure > 0 ? (exposureUsd / totalAssetExposure) * 360 : 0;
+    const color = assetColorBySymbol[symbol] ?? "#999";
+    const start = cumulativeDeg;
+    cumulativeDeg += deg;
+    return `${color} ${start.toFixed(1)}deg ${cumulativeDeg.toFixed(1)}deg`;
+  });
+  const conicGradient =
+    conicStops.length > 0
+      ? `conic-gradient(${conicStops.join(", ")})`
+      : "conic-gradient(#ddd 0deg 360deg)";
+
+  // Static timeline entries for TimelinePanel (tagged)
+  const timelineEntries = [
+    {
+      date: "Mar 22, 2026",
+      tag: "exploit" as const,
+      text: "USR depegs following Resolv Labs exploit; price drops to $0.58.",
+    },
+    {
+      date: "Mar 22, 2026",
+      tag: "curator" as const,
+      text: "Gauntlet pauses deposits across affected Morpho vaults as a precautionary measure.",
+    },
+    {
+      date: "Mar 22, 2026",
+      tag: "response" as const,
+      text: "Inverse Finance announces coverage of DOLA bad debt from the exploit.",
+    },
+    {
+      date: "Mar 22, 2026",
+      tag: "curator" as const,
+      text: "Re7 Labs reduces USR allocation in Re7 USDC vault on Base.",
+    },
+    {
+      date: "Mar 23, 2026",
+      tag: "update" as const,
+      text: "Exposure Core contagion dashboard launched with 29+ affected vaults tracked.",
+    },
+  ];
+
+  const timestamp = formatDate(summary.dataTimestamp);
+
+  // Panel header shared style helper
+  const panelHeader = (title: string) => (
+    <div className="text-[8px] font-black text-black/30 tracking-[0.3em] uppercase mb-3 pb-2 border-b border-black/[0.04]">
+      {title}
+    </div>
+  );
 
   return (
-    <div className="max-w-3xl mx-auto px-6">
-      {/* Section 01 — What Happened */}
-      <NarrativeSection number="01" title="What Happened">
-        <div className="flex items-center gap-3 mb-4">
-          <StatusBadge
-            status={config.status === "active" ? "affected" : "covering"}
+    <div className="bg-gray-50 min-h-screen">
+      {/* Outer wrapper with gap-px grid-line effect */}
+      <div
+        className="flex flex-col"
+        style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+      >
+        {/* ── Incident Banner ── */}
+        <div className="bg-white px-5 py-3">
+          <IncidentBanner
+            title={config.title}
+            description={config.description}
+            timestamp={formatDate(config.incidentDate)}
+            status={config.status}
           />
-          <span className="text-sm text-white/35">
-            {formatDate(config.incidentDate)}
-          </span>
         </div>
-        <p className="text-lg text-white/70 leading-relaxed">
-          {config.description}
-        </p>
-      </NarrativeSection>
 
-      {/* Section 02 — Scale */}
-      <NarrativeSection number="02" title="Scale">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <div className="text-5xl md:text-7xl font-mono font-bold text-white">
-              <AnimatedCounter
-                target={summary.totalToxicExposureUsd}
-                format="usd"
-              />
-            </div>
-            <p className="mt-2 text-sm text-white/35 uppercase tracking-wider">
-              Total at-risk allocation
-            </p>
-          </div>
-          <div>
-            <div className="text-5xl md:text-7xl font-mono font-bold text-white">
-              <AnimatedCounter target={summary.vaultCount} format="number" />
-            </div>
-            <p className="mt-2 text-sm text-white/35 uppercase tracking-wider">
-              Affected vaults
-            </p>
-          </div>
-          <div>
-            <div className="text-5xl md:text-7xl font-mono font-bold text-white">
-              <AnimatedCounter target={summary.protocolCount} format="number" />
-            </div>
-            <p className="mt-2 text-sm text-white/35 uppercase tracking-wider">
-              Protocols impacted
-            </p>
-          </div>
-        </div>
-      </NarrativeSection>
-
-      {/* Section 03 — Who's Affected */}
-      <NarrativeSection number="03" title="Who's Affected">
-        <div className="space-y-6">
-          {sortedProtocols.map(([protocol, data]) => (
-            <div key={protocol}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-white">
-                  {capitalize(protocol)}
-                </span>
-                <span className="text-sm text-white/50">
-                  {data.vaultCount} vault{data.vaultCount !== 1 ? "s" : ""} ·{" "}
-                  {formatUsd(data.exposureUsd)}
-                </span>
+        {/* ── Row 1: Total At-Risk | USR Price Chart ── */}
+        <div
+          className="grid grid-cols-1 md:grid-cols-2"
+          style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+        >
+          {/* Total At-Risk */}
+          <div className="bg-white px-5 py-4">
+            {panelHeader("Total At-Risk Allocation")}
+            <div className="flex flex-col gap-1">
+              <div
+                className="font-mono font-bold text-black"
+                style={{
+                  fontSize: 48,
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1,
+                }}
+              >
+                <AnimatedCounter
+                  target={summary.totalToxicExposureUsd}
+                  format="usd"
+                />
               </div>
-              <ExposureBar
-                breakdown={vaults
+              <p
+                className="uppercase font-semibold"
+                style={{ fontSize: 10, color: "rgba(0,0,0,0.30)" }}
+              >
+                across {summary.vaultCount} vault
+                {summary.vaultCount !== 1 ? "s" : ""} · {summary.protocolCount}{" "}
+                protocol{summary.protocolCount !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+
+          {/* USR Price Chart */}
+          <PriceChart
+            currentPrice={0.5823}
+            priceChange24h={-41.77}
+            pegPrice={1.0}
+          />
+        </div>
+
+        {/* ── Row 2: Bad Debt Status | Donut by Toxic Asset ── */}
+        <div
+          className="grid grid-cols-1 md:grid-cols-3"
+          style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+        >
+          {/* Bad Debt (spans 2 cols) */}
+          <div className="md:col-span-2 bg-white px-5 py-4">
+            {panelHeader("Bad Debt Status")}
+            <BadDebtPanel
+              realizedDebt={summary.totalToxicExposureUsd}
+              coveredDebt={0}
+              uncoveredGap={summary.totalToxicExposureUsd}
+              recoveryRate={0}
+            />
+          </div>
+
+          {/* Donut by Toxic Asset */}
+          <div className="bg-white px-5 py-4">
+            {panelHeader("By Toxic Asset")}
+            <div className="flex items-center gap-5">
+              {/* Donut */}
+              <div
+                className="w-[100px] h-[100px] rounded-full relative flex-shrink-0"
+                style={{ background: conicGradient }}
+              >
+                <div className="absolute inset-[26px] rounded-full bg-white flex flex-col items-center justify-center">
+                  <span className="font-mono text-[12px] font-bold leading-tight">
+                    {formatUsd(totalAssetExposure)}
+                  </span>
+                  <span className="text-[7px] text-black/25 uppercase tracking-widest">
+                    Total
+                  </span>
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-col gap-2">
+                {assetEntries.map(([symbol, { exposureUsd }]) => (
+                  <div key={symbol} className="flex items-center gap-2">
+                    <div
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: assetColorBySymbol[symbol] ?? "#999",
+                      }}
+                    />
+                    <div>
+                      <span
+                        className="font-black uppercase"
+                        style={{ fontSize: 9, color: "rgba(0,0,0,0.65)" }}
+                      >
+                        {symbol}
+                      </span>
+                      <span
+                        className="ml-1.5 font-mono"
+                        style={{ fontSize: 9, color: "rgba(0,0,0,0.35)" }}
+                      >
+                        {formatUsd(exposureUsd)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {assetEntries.length === 0 && (
+                  <span
+                    className="font-mono"
+                    style={{ fontSize: 10, color: "rgba(0,0,0,0.25)" }}
+                  >
+                    No data
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Row 3: Metrics Strip (4-col) ── */}
+        <div
+          className="grid grid-cols-2 md:grid-cols-4"
+          style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+        >
+          <MetricCard
+            label="Affected Vaults"
+            value={summary.vaultCount}
+            format="number"
+          />
+          <MetricCard
+            label="Protocols Impacted"
+            value={summary.protocolCount}
+            format="number"
+          />
+          <MetricCard
+            label="Covering"
+            value={summary.coveringCount}
+            format="number"
+          />
+          <MetricCard
+            label="Highest Exposure %"
+            value={highestPctVault ? highestPctVault.exposurePct * 100 : 0}
+            format="percent"
+          />
+        </div>
+
+        {/* ── Row 4: Exposure by Protocol | Timeline ── */}
+        <div
+          className="grid grid-cols-1 md:grid-cols-2"
+          style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+        >
+          {/* Exposure by Protocol */}
+          <div className="bg-white px-5 py-4">
+            {panelHeader("Exposure by Protocol")}
+            <div className="space-y-1">
+              {sortedProtocols.map(([protocol, data]) => {
+                const display = PROTOCOL_DISPLAY[protocol] ?? {
+                  color: "#888",
+                  initials: protocol.slice(0, 2).toUpperCase(),
+                };
+                const protocolBreakdown = vaults
                   .filter((ve) => ve.vault.protocol === protocol)
                   .flatMap((ve) => ve.breakdown)
                   .reduce<ToxicBreakdownEntry[]>((acc, b) => {
@@ -295,117 +476,55 @@ export default async function IncidentNarrativePage({
                       acc.push({ ...b });
                     }
                     return acc;
-                  }, [])}
-                toxicAssets={config.toxicAssets}
-                className="mt-1"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="mt-8">
-          <Link
-            href={`/incident/${slug}/dashboard`}
-            className="text-sm text-white/50 hover:text-white transition-colors"
-          >
-            View full dashboard →
-          </Link>
-        </div>
-      </NarrativeSection>
+                  }, []);
 
-      {/* Section 04 — Who's Covering */}
-      <NarrativeSection number="04" title="Who's Covering">
-        {coveringVaults.length === 0 ? (
-          <p className="text-white/70">
-            No protocols have announced coverage yet.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {coveringVaults.map((ve, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 p-4 rounded-lg"
-                style={{ backgroundColor: "rgba(16,185,129,0.06)" }}
-              >
-                <div
-                  className="mt-1 h-2 w-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: "#10b981" }}
-                />
-                <div>
-                  <p className="font-semibold text-white">{ve.vault.name}</p>
-                  {ve.vault.statusNote && (
-                    <p className="text-sm text-white/70 mt-0.5">
-                      {ve.vault.statusNote}
-                    </p>
-                  )}
-                  {ve.vault.statusSource && (
-                    <a
-                      href={ve.vault.statusSource}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs mt-1 inline-block"
-                      style={{ color: "#10b981" }}
-                    >
-                      Source ↗
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+                return (
+                  <div key={protocol}>
+                    <ProtocolRow
+                      name={capitalize(protocol)}
+                      logoSrc={`/logos/protocols/${protocol}.svg`}
+                      fallbackInitials={display.initials}
+                      fallbackColor={display.color}
+                      meta={`${data.vaultCount} vault${data.vaultCount !== 1 ? "s" : ""}`}
+                      amount={formatUsd(data.exposureUsd)}
+                      exposureBar={protocolBreakdown.map((b) => ({
+                        color:
+                          assetColorBySymbol[b.asset] ?? "rgba(0,0,0,0.15)",
+                        width: `${Math.min(b.pct * 100, 100)}%`,
+                      }))}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )}
-      </NarrativeSection>
 
-      {/* Section 05 — What You Can Do */}
-      <NarrativeSection number="05" title="What You Can Do">
-        <h3 className="text-lg font-semibold text-white mb-3">
-          Check if your vault is affected
-        </h3>
-        <p className="text-white/70 leading-relaxed mb-6">
-          Browse the full list of affected vaults, their exposure percentages,
-          and the latest protocol status updates.
-        </p>
-        <Link
-          href={`/incident/${slug}/dashboard`}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded text-sm font-medium text-white transition-colors"
-          style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-        >
-          View all affected vaults →
-        </Link>
-      </NarrativeSection>
-
-      {/* Section 06 — Timeline */}
-      <NarrativeSection number="06" title="Timeline">
-        <div className="relative space-y-6 pl-4 border-l border-white/[0.08]">
-          {reversedTimeline.map((entry, i) => (
-            <div key={i} className="relative">
-              <div
-                className="absolute -left-[1.3125rem] top-1 h-2 w-2 rounded-full"
-                style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-              />
-              <p className="text-xs font-mono text-white/35 mb-1">
-                {formatDate(entry.date)}
-              </p>
-              <p className="text-white/70 leading-relaxed">{entry.text}</p>
-            </div>
-          ))}
+          {/* Timeline */}
+          <div className="bg-white px-5 py-4">
+            {panelHeader("Timeline")}
+            <TimelinePanel entries={timelineEntries} />
+          </div>
         </div>
-      </NarrativeSection>
 
-      {/* Section 07 — Data Source */}
-      <NarrativeSection number="07" title="Data Source">
-        <p className="text-white/70 leading-relaxed mb-2">
-          Powered by Exposure Core
-        </p>
-        <p className="text-white/50 text-sm mb-4">
-          Data reflects on-chain allocations as of{" "}
-          {formatDate(summary.dataTimestamp)}.
-        </p>
-        <p className="text-xs text-white/20 leading-relaxed">
-          Exposure data is derived from on-chain graph snapshots and may not
-          reflect real-time positions. Figures are estimates and should not be
-          used as financial advice. Always verify with the protocol directly.
-        </p>
-      </NarrativeSection>
+        {/* ── Row 5: Vault Table (full-width) ── */}
+        <div className="bg-white px-5 py-4">
+          {panelHeader("All Affected Vaults")}
+          <VaultTable
+            vaults={vaults}
+            toxicAssets={config.toxicAssets}
+            slug={slug}
+          />
+        </div>
+
+        {/* ── Footer ── */}
+        <div className="bg-white mt-px px-5 py-3 flex justify-between text-[8px] font-semibold text-black/15 uppercase tracking-wide">
+          <span>
+            Exposure Core · Data refreshed every 10 min · Last update:{" "}
+            {timestamp}
+          </span>
+          <span>Approximate data · Verify with each protocol</span>
+        </div>
+      </div>
     </div>
   );
 }
