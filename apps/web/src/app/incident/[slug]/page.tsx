@@ -658,6 +658,70 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 22, 2026 · 09:41 UTC",
+      tag: "response" as const,
+      text: "DeFi Made Here confirms Fluid smart contracts are safe; limited bad debt will be 100% covered.",
+      details: {
+        tweets: [
+          {
+            author: "DMH",
+            handle: "@DeFi_Made_Here",
+            text: "Fluid smart contracts are safe and operate as intended. There is a limited bad debt, which will be 100% covered by Fluid if it remains after the incident is resolved.",
+            url: "https://x.com/DeFi_Made_Here/status/2035653191329530199",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 19:10 UTC",
+      tag: "curator" as const,
+      text: "9Summits publishes incident report — donation attack exploited Morpho vault edge case; bad debt limited to ~$41K USDC.",
+      details: {
+        description:
+          "9Summits flagged the USR mint exploit at 3am UTC and set supply caps to 0 on Resolv markets. At 12:33pm UTC, 32 transactions attempted a donation attack exploiting a documented edge case in Morpho vault 1.1 architecture.",
+        tweets: [
+          {
+            author: "9Summits",
+            handle: "@nine_summits",
+            text: "Expected bad debt limited to ~$41k USDC. Supply queue emptied and deposits paused.",
+            url: "https://x.com/nine_summits/status/2035796291725283641",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 21:27 UTC",
+      tag: "response" as const,
+      text: "Fluid secures short-term loans to cover 100% of bad debt from Lomashuk/cyberfund, weremeow, and Fluid core team.",
+      details: {
+        description:
+          "Resolv confirmed they will cover all pre-incident USR positions and enable redemptions. Multiple investors expressed interest in purchasing $FLUID from treasury as additional backstop.",
+        tweets: [
+          {
+            author: "Fluid",
+            handle: "@0xfluid",
+            text: "Fluid team secured short-term loans to cover 100% of bad debt. Smart contracts safe, all other markets normal, temporary rate volatility expected.",
+            url: "https://x.com/0xfluid/status/2035830645357006877",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 22, 2026 · 23:51 UTC",
+      tag: "update" as const,
+      text: "vaults.fyi adds warning indicators for all vaults impacted by the Resolv hack.",
+      details: {
+        tweets: [
+          {
+            author: "vaults.fyi",
+            handle: "@vaultsfyi",
+            text: "We've added warning indicators inside our app for vaults impacted by the Resolv hack. These include vaults on Morpho, Euler, Midas, Fluid, Upshift, YO, and others.",
+            url: "https://x.com/vaultsfyi/status/2035867095897157757",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
