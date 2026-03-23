@@ -80,14 +80,6 @@ function MiniDonut({
           />
         ))}
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span
-          className="font-mono font-bold"
-          style={{ fontSize: 8, color: "rgba(0,0,0,0.6)" }}
-        >
-          {formatUsdCompact(total)}
-        </span>
-      </div>
 
       {/* Tooltip */}
       {hover && segments.length > 0 && (
@@ -206,9 +198,17 @@ export function ProtocolRow({
         </div>
       </div>
 
-      {/* Mini donut or amount */}
+      {/* Mini donut + amount */}
       {breakdown && breakdown.length > 0 && total > 0 ? (
-        <MiniDonut breakdown={breakdown} total={total} size={40} />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className="font-mono font-bold text-black"
+            style={{ fontSize: 11 }}
+          >
+            {formatUsdCompact(total)}
+          </span>
+          <MiniDonut breakdown={breakdown} total={total} size={32} />
+        </div>
       ) : (
         <div className="flex flex-col items-end flex-shrink-0">
           {amount && (
