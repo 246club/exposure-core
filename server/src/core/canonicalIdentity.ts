@@ -66,7 +66,14 @@ export const buildCanonicalIdentity = (
   } else if (input.forcedSource === "fallback-symbol" && fallbackSymbol) {
     parts = [normalizeSegment(fallbackSymbol)];
   } else if (input.forcedSource === "fallback-unknown") {
-    parts = [normalizeSegment(fallbackName || fallbackSymbol || "unknown")];
+    const fallbackParts = [
+      fallbackName || fallbackSymbol || "unknown",
+      ...resourceParts,
+    ]
+      .filter(Boolean)
+      .map((value) => normalizeSegment(value));
+
+    parts = fallbackParts.length > 0 ? fallbackParts : ["unknown"];
   } else if (stableAddress) {
     parts = [normalizeStableIdentifier(stableAddress)];
   } else if (marketId) {

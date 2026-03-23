@@ -42,7 +42,10 @@ const cloneSnapshotWithRootId = (
     ...(nextChain ? { chain: nextChain } : {}),
   };
 
-  const nextNodes: Node[] = [nextRoot, ...snapshot.nodes.slice(1)];
+  const nextNodes: Node[] = [
+    nextRoot,
+    ...snapshot.nodes.slice(1).filter((node) => node.id !== nextRootId),
+  ];
   const nextEdges: Edge[] = snapshot.edges.map((edge) => ({
     ...edge,
     from: edge.from === baseRootId ? nextRootId : edge.from,
