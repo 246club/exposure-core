@@ -19,6 +19,13 @@ export async function generateMetadata({
     openGraph: {
       title: `${config.title} — Exposure`,
       description: config.description,
+      images: [{ url: "/og/resolv.png", width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${config.title} — Exposure`,
+      description: config.description,
+      images: ["/og/resolv.png"],
     },
   };
 }
