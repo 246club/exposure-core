@@ -3,7 +3,11 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { VaultExposure, ToxicAssetDef } from "@/lib/incident/types";
 import { formatUsdCompact } from "@/lib/incident/format";
-import { getCuratorLogoKey } from "@/lib/incident/logos";
+import {
+  getCuratorIcon,
+  getProtocolIcon,
+  getChainIcon,
+} from "@/lib/incident/logos";
 import { StatusBadge } from "./StatusBadge";
 import { ExposureBar } from "./ExposureBar";
 
@@ -44,11 +48,9 @@ function VaultLogo({
     color: "#888",
   };
 
-  const curatorKey = curator ? getCuratorLogoKey(curator) : null;
-  const primaryLogo = curatorKey
-    ? `/logos/curators/${curatorKey}.svg`
-    : `/logos/protocols/${protocol}.svg`;
-  const fallbackLogo = `/logos/protocols/${protocol}.svg`;
+  const curatorIcn = curator ? getCuratorIcon(curator) : null;
+  const primaryLogo = curatorIcn ?? getProtocolIcon(protocol);
+  const fallbackLogo = getProtocolIcon(protocol);
 
   if (primaryError && fallbackError) {
     return (
@@ -87,40 +89,16 @@ function VaultLogo({
   );
 }
 
-function ProtocolLogo({ protocol }: { protocol: string }) {
-  const [imgError, setImgError] = useState(false);
-  const fb = PROTOCOL_FALLBACK[protocol] ?? {
-    initials: protocol.slice(0, 2).toUpperCase(),
-    color: "#888",
-  };
-
-  if (imgError) {
-    return (
-      <div
-        title={protocol}
-        className="w-5 h-5 rounded flex items-center justify-center"
-        style={{ backgroundColor: fb.color }}
-      >
-        <span className="text-white font-black" style={{ fontSize: 8 }}>
-          {fb.initials}
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={`/logos/protocols/${protocol}.svg`}
-      alt={protocol}
-      title={protocol}
-      className="w-5 h-5"
-      onError={() => setImgError(true)}
-    />
-  );
-}
+const CHAIN_NAMES: Record<string, string> = {
+  eth: "Ethereum",
+  base: "Base",
+  arb: "Arbitrum",
+  plasma: "Plasma",
+};
 
 function ChainLogo({ chain }: { chain: string }) {
   const [imgError, setImgError] = useState(false);
+  const displayName = CHAIN_NAMES[chain] ?? chain.toUpperCase();
 
   if (imgError) {
     return (
@@ -130,6 +108,7 @@ function ChainLogo({ chain }: { chain: string }) {
           backgroundColor: "rgba(0,0,0,0.04)",
           color: "rgba(0,0,0,0.50)",
         }}
+        title={displayName}
       >
         {chain}
       </span>
@@ -138,9 +117,9 @@ function ChainLogo({ chain }: { chain: string }) {
 
   return (
     <img
-      src={`/logos/chains/${chain}.svg`}
-      alt={chain}
-      title={chain}
+      src={getChainIcon(chain)}
+      alt={displayName}
+      title={displayName}
       className="w-4 h-4"
       onError={() => setImgError(true)}
     />
@@ -390,7 +369,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           active={activeProtocols}
           onToggle={(v) => toggleFilter(setActiveProtocols, v)}
           capitalize
-          logoPath={(opt) => `/logos/protocols/${opt}.svg`}
+          logoPath={(opt) => getProtocolIcon(opt)}
         />
         <FilterDropdown
           label="Chain"
@@ -398,7 +377,7 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
           active={activeChains}
           onToggle={(v) => toggleFilter(setActiveChains, v)}
           uppercase
-          logoPath={(opt) => `/logos/chains/${opt}.svg`}
+          logoPath={(opt) => getChainIcon(opt)}
         />
         <FilterDropdown
           label="Status"
@@ -429,48 +408,38 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
       >
         <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: "32%" }} />
-            <col style={{ width: "8%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "6%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "38%" }} />
+            <col style={{ width: "34%" }} />
+            <col style={{ width: "18%" }} />
           </colgroup>
           <thead
             className="sticky top-0 z-10 text-xs uppercase"
             style={{
               backgroundColor: "rgba(0,0,0,0.03)",
               borderBottom: "1px solid rgba(0,0,0,0.06)",
-              color: "rgba(0,0,0,0.35)",
+              color: "rgba(0,0,0,0.30)",
+              fontWeight: 300,
+              letterSpacing: "0.06em",
             }}
           >
             <tr>
+              <th className="px-4 py-3 text-left whitespace-nowrap">Network</th>
+              <th className="px-4 py-3 text-left whitespace-nowrap">Vault</th>
               <th
-                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
-                onClick={() => handleSort("name")}
-              >
-                Vault
-                <SortIndicator col="name" />
-              </th>
-              <th className="px-4 py-3 text-left whitespace-nowrap">
-                Protocol
-              </th>
-              <th className="px-4 py-3 text-left whitespace-nowrap">Chains</th>
-              <th
-                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-left cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("exposureUsd")}
               >
                 Exposure
                 <SortIndicator col="exposureUsd" />
               </th>
               <th
-                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap"
+                className="px-4 py-3 text-right cursor-pointer hover:text-black/70 transition-colors whitespace-nowrap select-none"
                 onClick={() => handleSort("status")}
               >
                 Status
                 <SortIndicator col="status" />
               </th>
-              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -488,6 +457,15 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                     (e.currentTarget.style.backgroundColor = "transparent")
                   }
                 >
+                  {/* Network */}
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {ve.vault.chains.map((c) => (
+                        <ChainLogo key={c} chain={c} />
+                      ))}
+                    </div>
+                  </td>
+                  {/* Vault */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <VaultLogo
@@ -507,16 +485,6 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                           </span>
                         )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <ProtocolLogo protocol={ve.vault.protocol} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {ve.vault.chains.map((c) => (
-                        <ChainLogo key={c} chain={c} />
-                      ))}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -550,14 +518,13 @@ export function VaultTable({ vaults, toxicAssets }: VaultTableProps) {
                   <td className="px-4 py-3 text-right">
                     <StatusBadge status={ve.vault.status} />
                   </td>
-                  <td className="px-4 py-3" />
                 </tr>
               );
             })}
             {sorted.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={4}
                   className="px-4 py-10 text-center text-sm"
                   style={{ color: "rgba(0,0,0,0.30)" }}
                 >

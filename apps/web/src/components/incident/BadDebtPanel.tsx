@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatUsdCompact } from "@/lib/incident/format";
+import { getProtocolIcon } from "@/lib/incident/logos";
 
 export interface CoveringProtocol {
   name: string;
@@ -48,7 +49,7 @@ function CoveringLogo({ cp }: { cp: CoveringProtocol }) {
 
   return (
     <img
-      src={`/logos/protocols/${cp.protocol}.svg`}
+      src={getProtocolIcon(cp.protocol)}
       alt={cp.name}
       title={cp.name}
       className="flex-shrink-0 rounded"
@@ -59,7 +60,8 @@ function CoveringLogo({ cp }: { cp: CoveringProtocol }) {
 }
 
 function formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`;
+  const pct = value <= 1 ? value * 100 : value;
+  return `${pct.toFixed(1)}%`;
 }
 
 export function BadDebtPanel({
@@ -71,7 +73,7 @@ export function BadDebtPanel({
 }: BadDebtPanelProps) {
   return (
     <div
-      className="grid grid-cols-2"
+      className="grid grid-cols-2 max-w-md"
       style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.05)" }}
     >
       {/* Realized debt — neutral */}

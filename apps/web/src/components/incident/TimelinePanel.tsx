@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getProtocolIcon } from "@/lib/incident/logos";
 
 interface TimelineTweet {
   author: string;
@@ -194,7 +195,7 @@ function DetailModal({
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <img
-                      src={`/logos/protocols/${action.protocol}.svg`}
+                      src={getProtocolIcon(action.protocol)}
                       alt={action.protocol}
                       className="w-4 h-4"
                       onError={(e) => {

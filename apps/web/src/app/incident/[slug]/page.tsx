@@ -4,6 +4,7 @@ import { detectToxicExposure } from "@/lib/incident/detection";
 import { loadProtocolSnapshots } from "@/lib/graphLoader";
 import { inferProtocolFolderFromNodeId } from "@/lib/blobPaths";
 import { formatUsdCompact } from "@/lib/incident/format";
+import { getAssetIcon, getProtocolIcon } from "@/lib/incident/logos";
 import type {
   AdapterVault,
   IncidentSummary,
@@ -232,15 +233,7 @@ export default async function IncidentPage({
     .sort((a, b) => b.exposurePct - a.exposurePct)[0];
 
   // Token icon path helper
-  const tokenIconPath = (symbol: string): string | null => {
-    const key = symbol.toLowerCase();
-    const map: Record<string, string> = {
-      usr: "/logos/assets/usr.svg",
-      wstusr: "/logos/assets/wstusr.svg",
-      rlp: "/logos/assets/rlp.svg",
-    };
-    return map[key] ?? null;
-  };
+  const tokenIconPath = (symbol: string): string | null => getAssetIcon(symbol);
 
   // Donut chart data
   const assetEntries = Object.entries(summary.byAsset).sort(
@@ -360,6 +353,9 @@ export default async function IncidentPage({
   const coveringProtocolsList = Array.from(coveringProtocolsMap.entries()).map(
     ([protocol, name]) => ({ name, protocol }),
   );
+  const coveredTotal = vaults
+    .filter((ve) => ve.vault.status === "covering")
+    .reduce((sum, ve) => sum + ve.toxicExposureUsd, 0);
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -420,17 +416,21 @@ export default async function IncidentPage({
 
           {/* ── Row 2: Bad Debt Status | Donut by Toxic Asset ── */}
           <div
-            className="grid grid-cols-1 md:grid-cols-3"
+            className="grid grid-cols-1 md:grid-cols-2"
             style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
           >
-            {/* Bad Debt (spans 2 cols) */}
-            <div className="md:col-span-2 bg-white px-5 py-4">
+            {/* Bad Debt */}
+            <div className="bg-white px-5 py-4">
               {panelHeader("Bad Debt Status")}
               <BadDebtPanel
-                realizedDebt={0}
-                coveredDebt={0}
-                uncoveredGap={0}
-                recoveryRate={0}
+                realizedDebt={summary.totalToxicExposureUsd}
+                coveredDebt={coveredTotal}
+                uncoveredGap={summary.totalToxicExposureUsd - coveredTotal}
+                recoveryRate={
+                  summary.totalToxicExposureUsd > 0
+                    ? coveredTotal / summary.totalToxicExposureUsd
+                    : 0
+                }
                 coveringProtocols={coveringProtocolsList}
               />
             </div>
@@ -475,12 +475,16 @@ export default async function IncidentPage({
           {/* ── Row 4: Exposure by Protocol | Timeline ── */}
           <div
             className="grid grid-cols-1 md:grid-cols-2"
-            style={{ gap: 1, backgroundColor: "rgba(0,0,0,0.06)" }}
+            style={{
+              gap: 1,
+              backgroundColor: "rgba(0,0,0,0.06)",
+              alignItems: "start",
+            }}
           >
             {/* Exposure by Protocol */}
             <div className="bg-white px-5 py-4">
               {panelHeader("Exposure by Protocol")}
-              <div className="space-y-1">
+              <div className="space-y-1 max-h-[400px] overflow-y-auto">
                 {sortedProtocols.map(([protocol, data]) => {
                   const display = PROTOCOL_DISPLAY[protocol] ?? {
                     color: "#888",
@@ -504,11 +508,15 @@ export default async function IncidentPage({
                     <div key={protocol}>
                       <ProtocolRow
                         name={capitalize(protocol)}
-                        logoSrc={`/logos/protocols/${protocol}.svg`}
+                        logoSrc={getProtocolIcon(protocol)}
                         fallbackInitials={display.initials}
                         fallbackColor={display.color}
                         meta={`${data.vaultCount} vault${data.vaultCount !== 1 ? "s" : ""}`}
-                        amount={formatUsdCompact(data.exposureUsd)}
+                        amount={
+                          data.exposureUsd > 0
+                            ? formatUsdCompact(data.exposureUsd)
+                            : "Unknown"
+                        }
                         exposureBar={protocolBreakdown.map((b) => ({
                           color:
                             assetColorBySymbol[b.asset] ?? "rgba(0,0,0,0.15)",

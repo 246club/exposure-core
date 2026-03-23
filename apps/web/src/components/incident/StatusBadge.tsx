@@ -10,25 +10,25 @@ const STATUS_CONFIG: Record<
 > = {
   affected: {
     dotColor: "#E11D48",
-    bg: "rgba(225,29,72,0.06)",
+    bg: "transparent",
     textColor: "rgba(0,0,0,0.55)",
     label: "Affected",
   },
   covering: {
     dotColor: "#2563eb",
-    bg: "rgba(37,99,235,0.06)",
+    bg: "transparent",
     textColor: "rgba(0,0,0,0.55)",
     label: "Covering",
   },
   pending: {
     dotColor: "rgba(0,0,0,0.2)",
-    bg: "rgba(0,0,0,0.03)",
+    bg: "transparent",
     textColor: "rgba(0,0,0,0.3)",
     label: "Unknown",
   },
   unknown: {
     dotColor: "rgba(0,0,0,0.2)",
-    bg: "rgba(0,0,0,0.03)",
+    bg: "transparent",
     textColor: "rgba(0,0,0,0.3)",
     label: "Unknown",
   },

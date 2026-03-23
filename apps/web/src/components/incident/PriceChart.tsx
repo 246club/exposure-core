@@ -200,7 +200,7 @@ export function PriceChart() {
             <button
               key={range}
               onClick={() => setActiveRange(range)}
-              className="rounded-full transition-colors"
+              className="rounded-full transition-colors select-none cursor-pointer"
               style={{
                 padding: "3px 10px",
                 backgroundColor: active ? "#000" : "transparent",

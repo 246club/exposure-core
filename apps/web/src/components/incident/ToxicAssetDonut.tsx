@@ -63,7 +63,7 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
   return (
     <div className="flex items-center gap-6">
       {/* Donut */}
-      <div className="relative w-[100px] h-[100px] flex-shrink-0">
+      <div className="relative w-[140px] h-[140px] flex-shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -72,8 +72,8 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
               nameKey="symbol"
               cx="50%"
               cy="50%"
-              innerRadius={28}
-              outerRadius={50}
+              innerRadius={38}
+              outerRadius={68}
               paddingAngle={1}
               strokeWidth={0}
             >
@@ -112,7 +112,7 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
         {/* Center label */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center justify-center">
-            <span className="font-mono text-[11px] font-bold leading-tight">
+            <span className="font-mono text-[13px] font-bold leading-tight">
               {formatUsdCompact(total)}
             </span>
             <span className="text-[7px] text-black/25 uppercase tracking-widest">
@@ -137,7 +137,7 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
               <span
                 className="font-black uppercase"
                 style={{
-                  fontSize: 9,
+                  fontSize: 11,
                   color: "rgba(0,0,0,0.65)",
                   lineHeight: 1,
                 }}
@@ -147,7 +147,7 @@ export function ToxicAssetDonut({ entries, total }: ToxicAssetDonutProps) {
               <span
                 className="font-mono"
                 style={{
-                  fontSize: 9,
+                  fontSize: 11,
                   color: "rgba(0,0,0,0.35)",
                   lineHeight: 1,
                 }}
