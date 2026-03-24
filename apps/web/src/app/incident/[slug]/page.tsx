@@ -782,6 +782,21 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 24, 2026 · 07:01 UTC",
+      tag: "curator" as const,
+      text: "Edge (WhyShock) confirms full exit from Fluid Plasma position — sbUSD vault fully unwound.",
+      details: {
+        description:
+          "The sbUSD vault operated by Edge has fully exited its position on Fluid Plasma.",
+        links: [
+          {
+            label: "Exit transaction on Plasma",
+            url: "https://plasmascan.to/tx/0x2a412a797e7c0416a1fd63682f22b9db2d072f5e29838f5de2be2f5fef3fa77e",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 23, 2026 · 07:51 UTC",
       tag: "update" as const,
       text: "Deepcryptodive warns unlisted Morpho vaults (Everstone, Etherealm) are susceptible to flashloan-assisted attack via RLP exposure.",
