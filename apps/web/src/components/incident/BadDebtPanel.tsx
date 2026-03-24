@@ -141,7 +141,7 @@ export function BadDebtPanel({
             color: "var(--text-tertiary)",
           }}
         >
-          Uncovered Gap
+          Unresolved
         </p>
         <p
           className="font-mono font-bold tracking-tight"
@@ -161,7 +161,7 @@ export function BadDebtPanel({
             color: "var(--text-tertiary)",
           }}
         >
-          Recovery Rate
+          Resolution Rate
         </p>
         <p
           className="font-mono font-bold tracking-tight"
