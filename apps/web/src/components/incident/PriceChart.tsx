@@ -10,7 +10,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const COINGECKO_ID = "resolv-usr";
+const ASSETS = [
+  { id: "resolv-usr", symbol: "USR", color: "#c4daff", peg: 1.0 },
+  { id: "resolv-wstusr", symbol: "wstUSR", color: "#5792ff", peg: null },
+  { id: "resolv-rlp", symbol: "RLP", color: "#e89220", peg: null },
+] as const;
+
+type AssetSymbol = (typeof ASSETS)[number]["symbol"];
+
 const TIME_RANGES = ["1D", "7D", "30D"] as const;
 type TimeRange = (typeof TIME_RANGES)[number];
 
@@ -25,68 +32,99 @@ interface PricePoint {
   price: number;
 }
 
+type PriceData = Record<AssetSymbol, PricePoint[]>;
+
 export function PriceChart() {
-  const [data, setData] = useState<PricePoint[]>([]);
+  const [data, setData] = useState<PriceData>({
+    USR: [],
+    wstUSR: [],
+    RLP: [],
+  });
+  const [activeAsset, setActiveAsset] = useState<AssetSymbol>("USR");
   const [activeRange, setActiveRange] = useState<TimeRange>("7D");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
-    async function fetchPrices() {
+    async function fetchAll() {
       try {
-        const res = await fetch(
-          `https://api.coingecko.com/api/v3/coins/${COINGECKO_ID}/market_chart?vs_currency=usd&days=30`,
-          { signal: controller.signal },
-        );
-        if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
-        const json = await res.json();
-        if (!Array.isArray(json.prices)) throw new Error("Unexpected response");
-        const points: PricePoint[] = json.prices.map(
-          ([timestamp, price]: [number, number]) => ({
-            timestamp,
-            price,
+        const results = await Promise.all(
+          ASSETS.map(async (asset) => {
+            const res = await fetch(
+              `https://api.coingecko.com/api/v3/coins/${asset.id}/market_chart?vs_currency=usd&days=30`,
+              { signal: controller.signal },
+            );
+            if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
+            const json = await res.json();
+            if (!Array.isArray(json.prices))
+              throw new Error("Unexpected response");
+            const points: PricePoint[] = json.prices.map(
+              ([timestamp, price]: [number, number]) => ({
+                timestamp,
+                price,
+              }),
+            );
+            return { symbol: asset.symbol, points };
           }),
         );
-        setData(points);
+        const newData = {} as PriceData;
+        for (const r of results) {
+          newData[r.symbol as AssetSymbol] = r.points;
+        }
+        setData(newData);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          console.error("Failed to fetch USR price data:", err);
+          console.error("Failed to fetch price data:", err);
           if (!controller.signal.aborted) setError(true);
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     }
-    fetchPrices();
+    fetchAll();
     return () => controller.abort();
   }, []);
 
+  const assetConfig = ASSETS.find((a) => a.symbol === activeAsset) ?? ASSETS[0];
+  const assetData = data[activeAsset];
+
   const filtered = useMemo(() => {
     const cutoff = Date.now() - RANGE_DAYS[activeRange] * 24 * 60 * 60 * 1000;
-    return data.filter((p) => p.timestamp >= cutoff);
-  }, [data, activeRange]);
+    return assetData.filter((p) => p.timestamp >= cutoff);
+  }, [assetData, activeRange]);
 
   const { currentPrice, priceChange24h } = useMemo(() => {
-    if (data.length === 0) return { currentPrice: 0, priceChange24h: 0 };
-    const price = data[data.length - 1].price;
+    if (assetData.length === 0) return { currentPrice: 0, priceChange24h: 0 };
+    const price = assetData[assetData.length - 1].price;
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const dayAgoPoint = data.find((p) => p.timestamp >= oneDayAgo);
+    const dayAgoPoint = assetData.find((p) => p.timestamp >= oneDayAgo);
     const change =
       dayAgoPoint && dayAgoPoint.price > 0
         ? ((price - dayAgoPoint.price) / dayAgoPoint.price) * 100
         : 0;
     return { currentPrice: price, priceChange24h: change };
-  }, [data]);
+  }, [assetData]);
 
   const isDown = priceChange24h < 0;
   const changeColor = isDown ? "#E11D48" : "#00A35C";
   const changeSign = isDown ? "" : "+";
 
-  const chartColor = "#5792ff";
+  // Compute Y domain from filtered data
+  const yDomain = useMemo(() => {
+    if (filtered.length === 0) return [0, 1.05] as [number, number];
+    const prices = filtered.map((p) => p.price);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const padding = (max - min) * 0.1 || 0.01;
+    return [Math.max(0, min - padding), max + padding] as [number, number];
+  }, [filtered]);
 
   return (
-    <div className="px-5 py-4 flex flex-col" style={{ backgroundColor: "var(--surface)" }}>
+    <div
+      className="px-5 py-4 flex flex-col"
+      style={{ backgroundColor: "var(--surface)" }}
+    >
       {/* Panel label */}
       <p
         className="uppercase font-black mb-2"
@@ -96,15 +134,44 @@ export function PriceChart() {
           color: "var(--text-tertiary)",
         }}
       >
-        USR Price
+        Token Prices
       </p>
 
+      {/* Asset selector */}
+      <div className="flex items-center gap-1 mb-3">
+        {ASSETS.map((asset) => {
+          const active = asset.symbol === activeAsset;
+          return (
+            <button
+              key={asset.symbol}
+              onClick={() => setActiveAsset(asset.symbol as AssetSymbol)}
+              className="rounded-full transition-colors select-none cursor-pointer"
+              style={{
+                padding: "3px 10px",
+                backgroundColor: active ? asset.color : "transparent",
+                color: active ? "#000" : "var(--text-secondary)",
+                fontSize: 10,
+                fontWeight: 900,
+                letterSpacing: "0.06em",
+                border: active ? "none" : "1px solid var(--border)",
+              }}
+            >
+              {asset.symbol}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Price + change */}
-      {!loading && data.length > 0 && (
+      {!loading && assetData.length > 0 && (
         <div className="flex items-baseline gap-2 mb-3">
           <span
             className="font-mono font-bold"
-            style={{ fontSize: 28, letterSpacing: "-0.03em", color: "var(--text-primary)" }}
+            style={{
+              fontSize: 28,
+              letterSpacing: "-0.03em",
+              color: "var(--text-primary)",
+            }}
           >
             ${currentPrice.toFixed(4)}
           </span>
@@ -115,12 +182,14 @@ export function PriceChart() {
             {isDown ? "▼" : "▲"} {changeSign}
             {priceChange24h.toFixed(2)}%
           </span>
-          <span
-            className="font-mono"
-            style={{ fontSize: 10, color: "var(--text-tertiary)" }}
-          >
-            peg: $1.00
-          </span>
+          {assetConfig.peg !== null && (
+            <span
+              className="font-mono"
+              style={{ fontSize: 10, color: "var(--text-tertiary)" }}
+            >
+              peg: ${assetConfig.peg.toFixed(2)}
+            </span>
+          )}
         </div>
       )}
 
@@ -144,9 +213,23 @@ export function PriceChart() {
           <ResponsiveContainer width="100%" height={120}>
             <AreaChart data={filtered}>
               <defs>
-                <linearGradient id="usrGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={chartColor} stopOpacity={0.15} />
-                  <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
+                <linearGradient
+                  id={`gradient-${activeAsset}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor={assetConfig.color}
+                    stopOpacity={0.15}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={assetConfig.color}
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
               <XAxis
@@ -169,7 +252,7 @@ export function PriceChart() {
                 minTickGap={40}
               />
               <YAxis
-                domain={[0, 1.05]}
+                domain={yDomain}
                 tick={{ fontSize: 9, fill: "var(--text-tertiary)" }}
                 axisLine={false}
                 tickLine={false}
@@ -194,17 +277,17 @@ export function PriceChart() {
                 }
                 formatter={(value) => [
                   `$${(value as number).toFixed(4)}`,
-                  "USR",
+                  activeAsset,
                 ]}
               />
               <Area
                 type="monotone"
                 dataKey="price"
-                stroke={chartColor}
+                stroke={assetConfig.color}
                 strokeWidth={1.5}
-                fill="url(#usrGradient)"
+                fill={`url(#gradient-${activeAsset})`}
                 dot={false}
-                activeDot={{ r: 3, fill: chartColor }}
+                activeDot={{ r: 3, fill: assetConfig.color }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -228,7 +311,7 @@ export function PriceChart() {
                 fontWeight: 900,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase" as const,
-                border: active ? "none" : "1px solid rgba(0,0,0,0.08)",
+                border: active ? "none" : "1px solid var(--border)",
               }}
             >
               {range}
