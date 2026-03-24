@@ -149,7 +149,7 @@ const config: IncidentConfig = {
     // kpk — ETH vault fully recovered, zero loss. ARB still has ~$1K remaining.
     // Source: https://x.com/kpk_io/status/2036170798646349902
     {
-      source: "adapter",
+      source: "manual",
       name: "kpk USDC Yield",
       protocol: "morpho",
       chains: ["eth"],
