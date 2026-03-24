@@ -2,6 +2,7 @@ import type { Edge, Node } from "../../types.js";
 import type { Adapter } from "../types.js";
 import { isAllocationUsdEligible } from "../../resolvers/debank/utils.js";
 import {
+  buildMorphoCollateralId,
   buildMorphoMarketId,
   buildMorphoVaultId,
   resolveAllocationUsd,
@@ -272,6 +273,27 @@ export const createMorphoAdapter = (): Adapter<
             allocationUsd,
           });
 
+          if (collateralSymbol?.trim()) {
+            const collateralNodeId = buildMorphoCollateralId(
+              chain,
+              "v1",
+              collateralSymbol,
+            );
+
+            nodes.push({
+              id: collateralNodeId,
+              chain,
+              name: collateralSymbol,
+              protocol: "morpho-v1",
+            });
+
+            edges.push({
+              from: allocationNode.id,
+              to: collateralNodeId,
+              allocationUsd,
+            });
+          }
+
           continue;
         }
 
@@ -321,6 +343,27 @@ export const createMorphoAdapter = (): Adapter<
               to: nodeId,
               allocationUsd,
             });
+
+            if (collateralSymbol?.trim()) {
+              const collateralNodeId = buildMorphoCollateralId(
+                chain,
+                "v1",
+                collateralSymbol,
+              );
+
+              nodes.push({
+                id: collateralNodeId,
+                chain,
+                name: collateralSymbol,
+                protocol: "morpho-v1",
+              });
+
+              edges.push({
+                from: allocationNode.id,
+                to: collateralNodeId,
+                allocationUsd,
+              });
+            }
           }
           continue;
         }
