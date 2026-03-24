@@ -67,7 +67,8 @@ function computeSummary(vaults: VaultExposure[]): IncidentSummary {
     totalTvl += ve.totalAllocationUsd;
     totalToxic += ve.toxicExposureUsd;
     protocols.add(ve.vault.protocol);
-    if (ve.vault.status === "covering") coveringCount++;
+    if (ve.vault.status === "covering" || ve.vault.status === "recovered")
+      coveringCount++;
 
     const p = (byProtocol[ve.vault.protocol] ??= {
       exposureUsd: 0,
@@ -948,10 +949,10 @@ export default async function IncidentPage({
     </div>
   );
 
-  // Covering protocols for BadDebtPanel
+  // Covering + recovered protocols for BadDebtPanel
   const coveringProtocolsMap = new Map<string, string>();
   for (const ve of vaults) {
-    if (ve.vault.status === "covering") {
+    if (ve.vault.status === "covering" || ve.vault.status === "recovered") {
       coveringProtocolsMap.set(ve.vault.protocol, ve.vault.name);
     }
   }
@@ -959,7 +960,9 @@ export default async function IncidentPage({
     ([protocol, name]) => ({ name, protocol }),
   );
   const coveredTotal = vaults
-    .filter((ve) => ve.vault.status === "covering")
+    .filter(
+      (ve) => ve.vault.status === "covering" || ve.vault.status === "recovered",
+    )
     .reduce((sum, ve) => sum + ve.toxicExposureUsd, 0);
 
   return (
@@ -1082,7 +1085,7 @@ export default async function IncidentPage({
               format="number"
             />
             <MetricCard
-              label="Covering"
+              label="Covered / Recovered"
               value={summary.coveringCount}
               format="number"
             />
