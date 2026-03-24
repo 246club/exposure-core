@@ -40,16 +40,30 @@ export interface MorphoVaultV2 {
   };
 }
 
-const VAULT_V2S_QUERY: TypedDocumentNode<
-  { vaultV2s?: { items?: MorphoVaultV2[] } },
-  { first: number; skip: number; adaptersFirst: number; curatorsFirst: number }
+interface MorphoVaultV2Base {
+  address: string;
+  name: string;
+  whitelisted: boolean;
+  chain: { network: string };
+  totalAssetsUsd: number | null;
+  netApy: number | null;
+  curators: {
+    items: { name: string; id: string }[];
+  };
+}
+
+interface MorphoVaultV2Adapters {
+  address: string;
+  adapters: {
+    items: VaultV2Adapter[];
+  };
+}
+
+const VAULT_V2S_BASE_QUERY: TypedDocumentNode<
+  { vaultV2s?: { items?: MorphoVaultV2Base[] } },
+  { first: number; skip: number; curatorsFirst: number }
 > = parse(gql`
-  query VaultV2s(
-    $first: Int!
-    $skip: Int!
-    $adaptersFirst: Int = 20
-    $curatorsFirst: Int = 1
-  ) {
+  query VaultV2sBase($first: Int!, $skip: Int!, $curatorsFirst: Int = 1) {
     vaultV2s(first: $first, skip: $skip, where: { whitelisted: true }) {
       items {
         address
@@ -65,6 +79,23 @@ const VAULT_V2S_QUERY: TypedDocumentNode<
             name
           }
         }
+      }
+    }
+  }
+`);
+
+const VAULT_V2S_ADAPTERS_QUERY: TypedDocumentNode<
+  { vaultV2s?: { items?: MorphoVaultV2Adapters[] } },
+  { addresses: string[]; adaptersFirst: number }
+> = parse(gql`
+  query VaultV2sAdapters($addresses: [String!]!, $adaptersFirst: Int = 20) {
+    vaultV2s(
+      first: 100
+      skip: 0
+      where: { whitelisted: true, address_in: $addresses }
+    ) {
+      items {
+        address
         adapters(first: $adaptersFirst, skip: 0) {
           items {
             assetsUsd
@@ -121,6 +152,10 @@ export const fetchVaultV2s = async (): Promise<MorphoVaultV2[]> => {
   // Roughly scaling with `pageSize`, that implies ~516,800 complexity per request at `pageSize = 20`.
   // Actual complexity varies by vault content, but this keeps us comfortably under 1,000,000 and avoids
   // `Query is too complex` errors (see GraphQL response `extensions.complexity`).
+  //
+  // We also split v2 fetching into two requests per page: a lighter base vault query and a follow-up
+  // adapters query keyed to that page's vault addresses. This reduces the chance that one large nested
+  // selection (`adapters -> positions`) causes the entire page request to time out.
   const pageSize = 20;
   const adaptersFirst = 20;
   const curatorsFirst = 1;
@@ -130,15 +165,38 @@ export const fetchVaultV2s = async (): Promise<MorphoVaultV2[]> => {
   let skip = 0;
 
   while (true) {
-    const payload = await graphqlRequest({
+    const basePayload = await graphqlRequest({
       url: MORPHO_API_URL,
-      document: VAULT_V2S_QUERY,
-      variables: { first: pageSize, skip, adaptersFirst, curatorsFirst },
+      document: VAULT_V2S_BASE_QUERY,
+      variables: { first: pageSize, skip, curatorsFirst },
     });
 
-    const items = payload.vaultV2s?.items;
+    const baseItems = basePayload.vaultV2s?.items;
 
-    if (!items || items.length === 0) break;
+    if (!baseItems || baseItems.length === 0) break;
+
+    const adaptersPayload = await graphqlRequest({
+      url: MORPHO_API_URL,
+      document: VAULT_V2S_ADAPTERS_QUERY,
+      variables: {
+        addresses: baseItems.map((item) => item.address),
+        adaptersFirst,
+      },
+    });
+
+    const adaptersByAddress = new Map(
+      (adaptersPayload.vaultV2s?.items ?? []).map((item) => [
+        item.address.toLowerCase(),
+        item.adapters,
+      ]),
+    );
+
+    const items: MorphoVaultV2[] = baseItems.map((item) => ({
+      ...item,
+      adapters: adaptersByAddress.get(item.address.toLowerCase()) ?? {
+        items: [],
+      },
+    }));
 
     vaultsV2.push(...items);
 

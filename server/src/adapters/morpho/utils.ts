@@ -27,6 +27,18 @@ export const buildMorphoMarketId = (
   }).id;
 };
 
+export const buildMorphoCollateralId = (
+  chain: string,
+  version: "v1" | "v2",
+  collateralSymbol: string,
+): string => {
+  return buildCanonicalIdentity({
+    chain,
+    protocol: `morpho-${version}`,
+    resourceParts: ["collateral", collateralSymbol],
+  }).id;
+};
+
 export const resolveAllocationUsd = (allocation: MorphoAllocation): number => {
   if (allocation.supplyAssetsUsd != null) return allocation.supplyAssetsUsd;
 
