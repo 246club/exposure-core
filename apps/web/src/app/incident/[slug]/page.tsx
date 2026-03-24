@@ -1085,7 +1085,7 @@ export default async function IncidentPage({
               format="number"
             />
             <MetricCard
-              label="Covered / Recovered"
+              label="Promised / Recovered"
               value={summary.coveringCount}
               format="number"
             />

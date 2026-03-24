@@ -16,7 +16,7 @@ const STATUS_CONFIG: Record<
   covering: {
     dotColor: "#2563eb",
     textColor: "var(--text-secondary)",
-    label: "Covering",
+    label: "Promised",
   },
   recovered: {
     dotColor: "#00A35C",

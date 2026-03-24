@@ -106,7 +106,7 @@ export function BadDebtPanel({
             color: "var(--text-tertiary)",
           }}
         >
-          Covered / Promised
+          Promised / Recovered
         </p>
         {coveredDebt > 0 ? (
           <p
