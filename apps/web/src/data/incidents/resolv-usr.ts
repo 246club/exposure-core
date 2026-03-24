@@ -37,6 +37,8 @@ const config: IncidentConfig = {
       chains: ["eth"],
       curator: "Gauntlet",
       status: "affected",
+      statusNote:
+        "Deposits paused, caps zeroed. Compensation plan in progress with Resolv.",
       nodeIds: {
         eth: "eth:morpho-v1:0x8eb67a509616cd6a7c1b3c8c21d48ff57df3d458",
       },
@@ -48,6 +50,8 @@ const config: IncidentConfig = {
       chains: ["eth", "base"],
       curator: "Gauntlet",
       status: "affected",
+      statusNote:
+        "Deposits paused, caps zeroed. Compensation plan in progress with Resolv.",
       nodeIds: {
         eth: "eth:morpho-v1:0xc582f04d8a82795aa2ff9c8bb4c1c889fe7b754e",
         base: "base:morpho-v1:0x236919f11ff9ea9550a4287696c2fc9e18e6e890",
@@ -142,15 +146,32 @@ const config: IncidentConfig = {
         arb: "arb:morpho-v1:0x64ca76e2525fc6ab2179300c15e343d73e42f958",
       },
     },
+    // kpk — ETH vault fully recovered, zero loss. ARB still has ~$1K remaining.
+    // Source: https://x.com/kpk_io/status/2036170798646349902
     {
       source: "adapter",
       name: "kpk USDC Yield",
       protocol: "morpho",
-      chains: ["eth", "arb"],
+      chains: ["eth"],
       curator: "kpk",
-      status: "affected",
+      status: "recovered",
+      statusNote:
+        "All ETH funds fully recovered. Zero loss to depositors. Deposits re-enabled.",
+      statusSource: "https://x.com/kpk_io/status/2036170798646349902",
       nodeIds: {
         eth: "eth:morpho-v1:0x9178ebe0691593184c1d785a864b62a326cc3509",
+      },
+    },
+    {
+      source: "adapter",
+      name: "kpk USDC Yield",
+      protocol: "morpho",
+      chains: ["arb"],
+      curator: "kpk",
+      status: "affected",
+      statusNote: "Vault paused. ~$1K remaining exposure to Resolv markets.",
+      statusSource: "https://x.com/kpk_io/status/2036170798646349902",
+      nodeIds: {
         arb: "arb:morpho-v1:0x2c609d9cfc9dda2db5c128b2a665d921ec53579d",
       },
     },
@@ -205,7 +226,9 @@ const config: IncidentConfig = {
       chains: ["eth"],
       curator: "MEV Capital",
       status: "affected",
-      nodeIds: { eth: "eth:morpho-v1:0xd50da5f859811a91fd1876c9461fd39c23c747ad" },
+      nodeIds: {
+        eth: "eth:morpho-v1:0xd50da5f859811a91fd1876c9461fd39c23c747ad",
+      },
     },
     {
       source: "adapter",
@@ -214,6 +237,8 @@ const config: IncidentConfig = {
       chains: ["eth"],
       curator: "Steakhouse",
       status: "affected",
+      statusNote:
+        "Dedicated Resolv vault only. Main Steakhouse vaults confirmed zero exposure.",
       nodeIds: {
         eth: "eth:morpho-v1:0xbeef8833f9ff8e9d950df3cefb78da88931c0450",
       },
@@ -225,7 +250,9 @@ const config: IncidentConfig = {
       chains: ["eth"],
       curator: "Apostro",
       status: "affected",
-      nodeIds: { eth: "eth:morpho-v1:0x5085dd6fad07c12e38fae01bc2a4938d2c08b1bc" },
+      nodeIds: {
+        eth: "eth:morpho-v1:0x5085dd6fad07c12e38fae01bc2a4938d2c08b1bc",
+      },
     },
     {
       source: "adapter",
@@ -234,7 +261,10 @@ const config: IncidentConfig = {
       chains: ["hyperevm"],
       curator: "MEV Capital",
       status: "affected",
-      nodeIds: { hyperevm: "hyperevm:morpho-v1:0xd3a9cb7312b9c29113290758f5adfe12304cd16a" },
+      nodeIds: {
+        hyperevm:
+          "hyperevm:morpho-v1:0xd3a9cb7312b9c29113290758f5adfe12304cd16a",
+      },
     },
     {
       source: "adapter",
@@ -259,7 +289,9 @@ const config: IncidentConfig = {
       protocol: "euler",
       chains: ["plasma"],
       status: "affected",
-      nodeIds: { plasma: "plasma:euler:0x4718484ac9dc07fbbc078561e8f8ef29e2a369cd" },
+      nodeIds: {
+        plasma: "plasma:euler:0x4718484ac9dc07fbbc078561e8f8ef29e2a369cd",
+      },
     },
     {
       source: "adapter",
@@ -267,7 +299,9 @@ const config: IncidentConfig = {
       protocol: "euler",
       chains: ["plasma"],
       status: "affected",
-      nodeIds: { plasma: "plasma:euler:0x538f01e0ba3cf3ab5b3837a0d138a3f67b9b8235" },
+      nodeIds: {
+        plasma: "plasma:euler:0x538f01e0ba3cf3ab5b3837a0d138a3f67b9b8235",
+      },
     },
     {
       source: "adapter",
@@ -301,7 +335,9 @@ const config: IncidentConfig = {
       chains: ["base"],
       curator: "Apostro",
       status: "affected",
-      nodeIds: { base: "base:euler:0xc063c3b3625df5f362f60f35b0bcd98e0fa650fb" },
+      nodeIds: {
+        base: "base:euler:0xc063c3b3625df5f362f60f35b0bcd98e0fa650fb",
+      },
     },
     {
       source: "adapter",
@@ -310,7 +346,9 @@ const config: IncidentConfig = {
       chains: ["base"],
       curator: "Apostro",
       status: "affected",
-      nodeIds: { base: "base:euler:0x29dbce367f5157b924af5093617bb128477d7a5c" },
+      nodeIds: {
+        base: "base:euler:0x29dbce367f5157b924af5093617bb128477d7a5c",
+      },
     },
     {
       source: "adapter",

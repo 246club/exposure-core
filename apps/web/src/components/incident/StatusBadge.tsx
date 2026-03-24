@@ -1,7 +1,7 @@
 "use client";
 
 interface StatusBadgeProps {
-  status: "affected" | "covering" | "pending";
+  status: "affected" | "covering" | "recovered" | "pending";
 }
 
 const STATUS_CONFIG: Record<
@@ -17,6 +17,11 @@ const STATUS_CONFIG: Record<
     dotColor: "#2563eb",
     textColor: "var(--text-secondary)",
     label: "Covering",
+  },
+  recovered: {
+    dotColor: "#00A35C",
+    textColor: "var(--text-secondary)",
+    label: "Recovered",
   },
   pending: {
     dotColor: "var(--text-tertiary)",
