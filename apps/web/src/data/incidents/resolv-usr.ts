@@ -565,6 +565,131 @@ const config: IncidentConfig = {
       exposureUsd: 47_152, // Total Supplied: $47,152.05
       toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 47_152, pct: 1 }],
     },
+    // ─── Fluid wstUSR vaults (BNB) ───
+    // Source: fluid.io/stats — screenshotted 2026-03-25
+    // Remaining borrowed after ~$70M combined BNB/Plasma repayment
+    {
+      source: "manual",
+      name: "Fluid wstUSR/USDC",
+      protocol: "fluid",
+      chains: ["bsc"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 2_269,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 2_269, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR/USDT",
+      protocol: "fluid",
+      chains: ["bsc"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 21,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 21, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR/USDT-USDC",
+      protocol: "fluid",
+      chains: ["bsc"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 68_660,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 68_660, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR/USDT-U",
+      protocol: "fluid",
+      chains: ["bsc"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 44_032,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 44_032, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR-USDT/USDT",
+      protocol: "fluid",
+      chains: ["bsc"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 2_890_110,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 2_890_110, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR-USDT/USDT-USDC",
+      protocol: "fluid",
+      chains: ["bsc"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 6,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 6, pct: 1 }],
+    },
+    // ─── Fluid wstUSR vaults (Plasma) ───
+    // Source: fluid.io/stats — screenshotted 2026-03-25
+    {
+      source: "manual",
+      name: "Fluid wstUSR/USDT0",
+      protocol: "fluid",
+      chains: ["plasma"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 205_741,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 205_741, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR-USDT0/USDT0",
+      protocol: "fluid",
+      chains: ["plasma"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 470_309,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 470_309, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR/GHO",
+      protocol: "fluid",
+      chains: ["plasma"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 14_780,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 14_780, pct: 1 }],
+    },
+    {
+      source: "manual",
+      name: "Fluid wstUSR-GHO/GHO",
+      protocol: "fluid",
+      chains: ["plasma"],
+      status: "covering",
+      statusNote:
+        "~$70M USR debt on BNB/Plasma repaid. Remaining debt settlement in progress.",
+      statusSource: "https://x.com/0xfluid/status/2036564938429460817",
+      exposureUsd: 5,
+      toxicAssetBreakdown: [{ asset: "wstUSR", amountUsd: 5, pct: 1 }],
+    },
     {
       source: "manual",
       name: "mEDGE",
