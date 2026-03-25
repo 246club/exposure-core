@@ -1007,6 +1007,57 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 24, 2026 · 20:02 UTC",
+      tag: "curator" as const,
+      text: "Gauntlet CBO announces partial post-mortem forthcoming — primary focus on swift resolution with Resolv.",
+      details: {
+        description:
+          "Nicholas Cannon (Gauntlet CBO) confirms a partial post-mortem will be published covering Morpho's public allocator, MEV bots, and sequencing. Primary focus remains on achieving a swift resolution with Resolv.",
+        tweets: [
+          {
+            author: "Nicholas Cannon",
+            handle: "@inkymaze",
+            text: "We will post a partial post-mortem later because the competition can't wait. We hope to help better explain Morpho's public allocator, MEV bots, and sequencing. Our primary focus remains on achieving a swift resolution with Resolv.",
+            url: "https://x.com/inkymaze/status/2036534725817295225",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 24, 2026 · 22:04 UTC",
+      tag: "response" as const,
+      text: "Fluid reports ~$70M USR-related debt on BNB/Plasma chains repaid; governance proposal for remaining debt settlement.",
+      details: {
+        description:
+          "Approximately $70M of USR-related debt on BNB and Plasma chains has been repaid. Governance proposal submitted to transfer remaining USR debt positions to the team multisig for settlement with Resolv. Compensation plan for affected USR users forthcoming.",
+        tweets: [
+          {
+            author: "Fluid",
+            handle: "@0xfluid",
+            text: "~$70M of USR-related debt on BNB and Plasma chains has been repaid. Governance proposal submitted to transfer remaining USR debt positions to the team multisig for settlement with Resolv. Compensation plan for affected USR users forthcoming. All Fluid markets are safe.",
+            url: "https://x.com/0xfluid/status/2036564938429460817",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 25, 2026 · 03:42 UTC",
+      tag: "response" as const,
+      text: "Venus reports $31.6M in USR-related debt on Flux cleared; interest rates normalized, withdrawals resumed.",
+      details: {
+        description:
+          "Repayments related to the USR/Resolv event are underway on Venus Flux. $31.6M in USR-related debt has been cleared, with the remaining balance expected to be repaid within days. Interest rates have returned to normal.",
+        tweets: [
+          {
+            author: "Venus Protocol",
+            handle: "@VenusProtocol",
+            text: "Update for Flux users: Repayments related to the USR/Resolv event are now underway. $31.6M in USR-related debt on Flux has been cleared, with the remaining balance expected to be repaid within days. Interest rates have returned to normal. Users can withdraw, borrow, and supply as usual.",
+            url: "https://x.com/VenusProtocol/status/2036649791556616581",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
