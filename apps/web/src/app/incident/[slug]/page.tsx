@@ -1092,6 +1092,23 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 25, 2026 · 13:49 UTC",
+      tag: "curator" as const,
+      text: "KPK removes all exposure to affected RLP market on Arbitrum — zero user funds lost. Re-enabling deposits.",
+      details: {
+        description:
+          "KPK confirms all exposure to the affected RLP market on Arbitrum has been removed with zero user funds lost. Deposits in the Arbitrum USDC Yield vault will be re-enabled.",
+        tweets: [
+          {
+            author: "Deepcryptodive.eth",
+            handle: "@deepcryptodive",
+            text: "We were able to remove all exposure to the affected RLP market on @arbitrum. Zero user funds lost, once again, for @kpk_io depositors 🙏\n\nWe are re-enabling deposits in the Arbitrum USDC Yield vault asap.",
+            url: "https://x.com/deepcryptodive/status/2036802509210001876",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {

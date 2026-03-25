@@ -182,9 +182,10 @@ const config: IncidentConfig = {
       protocol: "morpho",
       chains: ["arb"],
       curator: "kpk",
-      status: "affected",
-      statusNote: "Vault paused. ~$1K remaining exposure to Resolv markets.",
-      statusSource: "https://x.com/kpk_io/status/2036170798646349902",
+      status: "recovered",
+      statusNote:
+        "All RLP exposure removed. Zero user funds lost. Deposits re-enabled.",
+      statusSource: "https://x.com/deepcryptodive/status/2036802509210001876",
       nodeIds: {
         arb: "arb:morpho-v1:0x2c609d9cfc9dda2db5c128b2a665d921ec53579d",
       },
