@@ -739,7 +739,6 @@ const config: IncidentConfig = {
       statusNote:
         "$31.6M in USR-related debt cleared. Remaining balance expected repaid within days. Interest rates normalized, withdrawals resumed.",
       statusSource: "https://x.com/VenusProtocol/status/2036649791556616581",
-      coveredUsd: 31_600_000,
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },
