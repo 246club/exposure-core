@@ -87,9 +87,9 @@ const config: IncidentConfig = {
       protocol: "morpho",
       chains: ["eth"],
       curator: "9Summits",
-      status: "recovered",
+      status: "covering",
       statusNote:
-        "100% of stUSR settled for USDC with Resolv. Depositors can redeem.",
+        "100% of stUSR settled for USDC with Resolv. Depositor redemptions in coming days.",
       statusSource: "https://x.com/nine_summits/status/2036855553679360273",
       nodeIds: {
         eth: "eth:morpho-v1:0x1e2aaadcf528b9cc08f43d4fd7db488ce89f5741",
