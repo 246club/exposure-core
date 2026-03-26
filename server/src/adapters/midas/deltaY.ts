@@ -6,6 +6,8 @@ export interface DeltaYVaultsResponse {
       name?: string;
       provider?: string;
     };
+    apy?: number | null;
+    navUsd?: number | null;
   }[];
 }
 

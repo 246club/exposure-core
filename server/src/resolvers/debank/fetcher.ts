@@ -144,7 +144,7 @@ const BUNDLE_PATH = `${BUNDLE_API_BASE_URL}/bundle`;
 // shared one-second window across the whole process, then wait for the next
 // window before starting more requests.
 const DEBANK_MAX_REQUESTS_PER_WINDOW = 50;
-const DEBANK_WINDOW_MS = 5000;
+const DEBANK_WINDOW_MS = 2000;
 
 let debankWindowStartedAt = 0;
 let debankRequestsInWindow = 0;
@@ -235,6 +235,8 @@ export const fetchTokenList = async (
   walletAddress: string,
 ): Promise<TokenObject[]> => {
   const url = buildDebankUrl(ALL_TOKEN_LIST_PATH, walletAddress);
+  // Keep token balances as a raw wallet fallback and avoid protocol-derived tokens.
+  url.searchParams.set("is_all", "false");
 
   return fetchDebankData<TokenObject[]>(url);
 };

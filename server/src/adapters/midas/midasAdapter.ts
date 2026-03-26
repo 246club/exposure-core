@@ -35,6 +35,11 @@ export interface MidasAllocation {
   link: string | null;
 }
 
+interface MidasVaultMetrics {
+  apy: number | null;
+  navUsd: number | null;
+}
+
 const MIDAS_VAULT_CONCURRENCY = 4;
 
 const mapWithConcurrency = async <T, R>(
@@ -201,10 +206,13 @@ export const createMidasAdapter = (): Adapter<
   MidasAllocation[],
   MidasAllocation
 > => {
+  const vaultMetricsByAsset = new Map<string, MidasVaultMetrics>();
+
   return {
     id: MIDAS_PROTOCOL,
     async fetchCatalog() {
       const catalog = await fetchMidasVaultCatalog();
+      vaultMetricsByAsset.clear();
 
       if (!Array.isArray(catalog.vaults)) {
         throw new Error("Midas API returned invalid vault catalog payload");
@@ -219,6 +227,12 @@ export const createMidasAdapter = (): Adapter<
 
           if (!asset) return [];
           if (provider !== MIDAS_PROVIDER_NAME) return [];
+
+          const vaultMetrics: MidasVaultMetrics = {
+            apy: vault.apy ?? null,
+            navUsd: vault.navUsd ?? null,
+          };
+          vaultMetricsByAsset.set(asset, vaultMetrics);
 
           const [sankey, walletMetadata] = await Promise.all([
             fetchVaultSankey(asset),
@@ -239,10 +253,13 @@ export const createMidasAdapter = (): Adapter<
       return allocationsByVault.flat();
     },
     buildRootNode(asset, allocations) {
-      const tvlUsd = allocations.reduce(
+      const vaultMetrics = vaultMetricsByAsset.get(asset);
+      const fallbackTvlUsd = allocations.reduce(
         (sum, allocation) => sum + allocation.navUsd,
         0,
       );
+      const tvlUsd = vaultMetrics?.navUsd ?? fallbackTvlUsd;
+      const apy = vaultMetrics?.apy ?? null;
 
       const primaryDeployment = getMidasPrimaryDeployment(asset);
       const chain = primaryDeployment?.chain ?? "eth";
@@ -261,7 +278,7 @@ export const createMidasAdapter = (): Adapter<
           kind: "Yield",
           curator: getCuratorForAsset(asset),
         },
-        apy: null,
+        apy,
         tvlUsd,
       };
 
