@@ -146,7 +146,7 @@ export const createFluidAdapter = (): Adapter<
 
       for (const token of vault.supplyTokens) {
         const tokenAddress = token.address.toLowerCase();
-        const nodeId = `${chainKey}:token:${tokenAddress}`;
+        const nodeId = fluidNodeId(chainKey, tokenAddress);
 
         const tokenShare =
           vault.supplyTokens.length === 1
@@ -173,7 +173,7 @@ export const createFluidAdapter = (): Adapter<
 
       for (const token of vault.borrowTokens) {
         const tokenAddress = token.address.toLowerCase();
-        const nodeId = `${chainKey}:token:${tokenAddress}`;
+        const nodeId = fluidNodeId(chainKey, tokenAddress);
 
         const tokenShare =
           vault.borrowTokens.length === 1

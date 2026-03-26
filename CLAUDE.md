@@ -65,11 +65,12 @@ Search Index (server/src/exposure/searchIndex.ts) — builds searchable metadata
 Vercel Blob Storage (exposure/graph/{protocol}.json, exposure/search-index.json)
 ```
 
-Production pipeline runs daily at 00:00 UTC via Vercel cron (`server/api/cron/generate-graphs.ts`).
+Production pipeline runs every 10 minutes via Vercel cron (`server/api/cron/generate-graphs.ts`).
 
 ### Adapter Pattern
 
 Each adapter in `server/src/adapters/` implements the `Adapter<TCatalog, TAllocation>` interface from `server/src/adapters/types.ts`:
+
 - `fetchCatalog()` — fetch all data from the protocol's API
 - `getAssetByAllocations()` — group allocations by asset
 - `buildRootNode()` / `buildEdge()` — construct graph nodes and edges
@@ -80,6 +81,7 @@ Adapters are registered in `server/src/adapters/registry.ts`.
 ### Graph Types
 
 Core types in `server/src/types.ts`:
+
 - **Node**: `{ id: "chain:protocol:address", name, chain, protocol, details, tvlUsd, apy, logoKeys }`
 - **Edge**: `{ from, to, allocationUsd, lendingPosition? }`
 - **GraphSnapshot**: `{ nodes, edges, sources }`
@@ -89,6 +91,7 @@ Node kinds: Yield, Lending, Lending Market, Deposit, Staked, Locked, Liquidity P
 ### Fixture System
 
 Local development uses fixtures instead of live API calls:
+
 - `server/fixtures/scripts/graphs-all.ts` — orchestrates all fixture generation
 - `server/fixtures/scripts/core/mock-fetch.ts` — intercepts fetch() to serve fixture data (blocks paid Debank calls)
 - `server/fixtures/providers/` — mock data per protocol
@@ -98,14 +101,17 @@ Local development uses fixtures instead of live API calls:
 ### Web App (apps/web/)
 
 **Routing**: Next.js App Router
+
 - `/` — home page with universal treemap view + search/filter
 - `/asset/[id]` — individual asset detail page with drill-down
 
 **API Routes**:
+
 - `/api/graph/[id]` — fetches graph snapshot (Blob in prod, fixtures in dev)
 - `/api/search-index` — serves search index (redirects to Blob in prod)
 
 **Treemap Visualization**:
+
 - `AssetTreeMap.tsx` — data prep, "Others" aggregation (tiles <2% grouped)
 - `AssetTreeMapKonva.tsx` — canvas rendering via React-Konva with d3-hierarchy layout
 - Dynamically imported with SSR disabled (canvas doesn't work server-side)

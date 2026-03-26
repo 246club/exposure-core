@@ -150,7 +150,8 @@ function computeSummary(vaults: VaultExposure[]): IncidentSummary {
     totalTvl += ve.totalAllocationUsd;
     totalToxic += ve.toxicExposureUsd;
     protocols.add(ve.vault.protocol);
-    if (ve.vault.status === "covering") coveringCount++;
+    if (ve.vault.status === "covering" || ve.vault.status === "recovered")
+      coveringCount++;
 
     // By protocol
     const p = (byProtocol[ve.vault.protocol] ??= {
