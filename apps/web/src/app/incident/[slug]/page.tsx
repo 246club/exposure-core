@@ -1106,6 +1106,23 @@ export default async function IncidentPage({
       },
     },
     {
+      date: "Mar 26, 2026 · 05:14 UTC",
+      tag: "curator" as const,
+      text: "Gauntlet deallocates USDC Core (Base) and USDC Frontier v2 (mainnet) from all Resolv markets — no bad debt.",
+      details: {
+        description:
+          "USDC Core on Base: deallocated from all Resolv markets with no bad debt, $1.47M in liquidity. USDC Frontier on mainnet (v2 vault): deallocated with no bad debt, $1.95M in liquidity.",
+        tweets: [
+          {
+            author: "Gauntlet",
+            handle: "@gauntlet_xyz",
+            text: "We have completed the following actions following the Resolv exploit: 1. USDC Core on Base: deallocated from all Resolv markets with no bad debt. $1.47M in liquidity. 2. USDC Frontier on mainnet (v2 vault): deallocated from all Resolv markets with no bad debt. $1.95M in liquidity.",
+            url: "https://x.com/gauntlet_xyz/status/2037035536351941068",
+          },
+        ],
+      },
+    },
+    {
       date: "Mar 25, 2026 · 13:49 UTC",
       tag: "curator" as const,
       text: "KPK removes all exposure to affected RLP market on Arbitrum — zero user funds lost. Re-enabling deposits.",

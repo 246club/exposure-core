@@ -58,6 +58,20 @@ const config: IncidentConfig = {
     },
     {
       source: "adapter",
+      name: "Gauntlet USDC Core",
+      protocol: "morpho",
+      chains: ["base"],
+      curator: "Gauntlet",
+      status: "recovered",
+      statusNote:
+        "Deallocated from all Resolv markets with no bad debt. $1.47M in liquidity.",
+      statusSource: "https://x.com/gauntlet_xyz/status/2037035536351941068",
+      nodeIds: {
+        base: "base:morpho-v1:0xc0c5689e6f4d256e861f65465b691aeecc0deb12",
+      },
+    },
+    {
+      source: "adapter",
       name: "Gauntlet USDC Frontier",
       protocol: "morpho",
       chains: ["eth", "base"],
@@ -69,6 +83,20 @@ const config: IncidentConfig = {
       nodeIds: {
         eth: "eth:morpho-v1:0xc582f04d8a82795aa2ff9c8bb4c1c889fe7b754e",
         base: "base:morpho-v1:0x236919f11ff9ea9550a4287696c2fc9e18e6e890",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Gauntlet USDC Frontier v2",
+      protocol: "morpho",
+      chains: ["eth"],
+      curator: "Gauntlet",
+      status: "recovered",
+      statusNote:
+        "Deallocated from all Resolv markets with no bad debt. $1.95M in liquidity.",
+      statusSource: "https://x.com/gauntlet_xyz/status/2037035536351941068",
+      nodeIds: {
+        eth: "eth:morpho-v1:0x9a1d6bd5b8642c41f25e0958129b85f8e1176f3e",
       },
     },
     {
