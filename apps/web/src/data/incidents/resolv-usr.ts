@@ -74,14 +74,27 @@ const config: IncidentConfig = {
       source: "adapter",
       name: "Gauntlet USDC Frontier",
       protocol: "morpho",
-      chains: ["eth", "base"],
+      chains: ["eth"],
       curator: "Gauntlet",
       status: "affected",
       statusNote:
-        "Deposits paused, caps zeroed. Post-mortem forthcoming. Primary focus on swift resolution with Resolv.",
-      statusSource: "https://x.com/inkymaze/status/2036534725817295225",
+        "Deposits paused, caps zeroed. Timelock pending to re-open vault.",
+      statusSource: "https://x.com/gauntlet_xyz/status/2037338042558759186",
       nodeIds: {
         eth: "eth:morpho-v1:0xc582f04d8a82795aa2ff9c8bb4c1c889fe7b754e",
+      },
+    },
+    {
+      source: "adapter",
+      name: "Gauntlet USDC Frontier",
+      protocol: "morpho",
+      chains: ["base"],
+      curator: "Gauntlet",
+      status: "recovered",
+      statusNote:
+        "Deallocated from all Resolv markets with no bad debt. Deposits open.",
+      statusSource: "https://x.com/gauntlet_xyz/status/2037338042558759186",
+      nodeIds: {
         base: "base:morpho-v1:0x236919f11ff9ea9550a4287696c2fc9e18e6e890",
       },
     },
@@ -115,10 +128,10 @@ const config: IncidentConfig = {
       protocol: "morpho",
       chains: ["eth"],
       curator: "9Summits",
-      status: "covering",
+      status: "recovered",
       statusNote:
-        "100% of stUSR settled for USDC with Resolv. Depositor redemptions in coming days.",
-      statusSource: "https://x.com/nine_summits/status/2036855553679360273",
+        "Vault closed. 100% of stUSR settled for USDC with Resolv. Depositors can redeem.",
+      statusSource: "https://x.com/nine_summits/status/2037134754680615366",
       nodeIds: {
         eth: "eth:morpho-v1:0x1e2aaadcf528b9cc08f43d4fd7db488ce89f5741",
       },
@@ -228,7 +241,10 @@ const config: IncidentConfig = {
       protocol: "morpho",
       chains: ["eth"],
       curator: "MEV Capital",
-      status: "affected",
+      status: "recovered",
+      statusNote:
+        "Fully exited RLP/USDC market. ~$47K loss (<0.65% TVL). Deposits re-opened.",
+      statusSource: "https://x.com/MEVCapital/status/2037194072817803772",
       nodeIds: {
         eth: "eth:morpho-v1:0xd63070114470f685b75b74d60eec7c1113d33a3d",
       },
@@ -778,7 +794,10 @@ const config: IncidentConfig = {
       name: "USD1 Vault",
       protocol: "lista-dao",
       chains: ["eth"],
-      status: "affected",
+      status: "covering",
+      statusNote:
+        "$8.4M of $8.6M USR loans repaid at 1:1 USD value. One $26K position remaining.",
+      statusSource: "https://x.com/lista_dao/status/2037322590134366655",
       exposureUsd: 0,
       toxicAssetBreakdown: [],
     },

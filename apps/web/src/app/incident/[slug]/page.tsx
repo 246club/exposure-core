@@ -1156,6 +1156,87 @@ export default async function IncidentPage({
         ],
       },
     },
+    {
+      date: "Mar 26, 2026 · 11:49 UTC",
+      tag: "curator" as const,
+      text: "9Summits closes Usual Resolv vault — depositors can now redeem via Lagoon Finance.",
+      details: {
+        tweets: [
+          {
+            author: "9Summits",
+            handle: "@nine_summits",
+            text: "Update: The Usual Resolv vault is now closed. Users may redeem their assets.",
+            url: "https://x.com/nine_summits/status/2037134754680615366",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 26, 2026 · 14:54 UTC",
+      tag: "response" as const,
+      text: "Resolv warns against trading USR — illicitly minted tokens have commingled with legitimate ones across wallets.",
+      details: {
+        description:
+          "Illicitly created tokens lack collateral backing and redemption rights. Current transactions risk involving fraudulent tokens and complicating recovery. A formal resolution plan is being developed with affected protocols.",
+        tweets: [
+          {
+            author: "Resolv Labs",
+            handle: "@ResolvLabs",
+            text: "We strongly advise against trading or acquiring USR at this time. Illicitly created tokens have commingled with legitimate ones across wallets. A formal resolution plan is underway with affected protocols.",
+            url: "https://x.com/ResolvLabs/status/2037181044965752929",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 26, 2026 · 15:45 UTC",
+      tag: "curator" as const,
+      text: "MEV Capital USDC Vault fully exits RLP/USDC market — ~$47K loss (<0.65% TVL), zero Resolv exposure. Deposits re-opened.",
+      details: {
+        description:
+          "MEV Capital Ethereum USDC Vault has fully exited the Resolv RLP/USDC market following the 3-day timelock expiry. A residual of ~$47K USDC was removed, accounting for less than 0.65% of remaining TVL.",
+        tweets: [
+          {
+            author: "MEV Capital",
+            handle: "@MEVCapital",
+            text: "The MEV Capital Morpho Ethereum USDC Vault has fully exited the ResolvLabs RLP/USDC market following the 3-day timelock expiry. A residual of ~47K USDC has been removed from the Vault, accounting for less than 0.65% of the remaining TVL. MEV Capital Vaults now have zero exposure to any Resolv assets.",
+            url: "https://x.com/MEVCapital/status/2037194072817803772",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 27, 2026 · 00:14 UTC",
+      tag: "response" as const,
+      text: "Lista DAO reports $8.4M of $8.6M USR loans repaid at 1:1 USD value — zero losses, one $26K position remaining.",
+      details: {
+        tweets: [
+          {
+            author: "Lista DAO",
+            handle: "@lista_dao",
+            text: "Of the $8.6M in USR-related loans, $8.4M has been fully repaid. Every position was redeemed 1:1 at full USD value. Zero losses for users and the protocol. One remaining $26K position to close.",
+            url: "https://x.com/lista_dao/status/2037322590134366655",
+          },
+        ],
+      },
+    },
+    {
+      date: "Mar 27, 2026 · 01:17 UTC",
+      tag: "curator" as const,
+      text: "Gauntlet deallocates USDC Frontier v1 on Base — no bad debt, deposits open. Mainnet v2 re-opening in progress (timelock pending).",
+      details: {
+        description:
+          "USDC Frontier on Base (v1): deallocated from all Resolv markets with no bad debt. Both v1 and v2 vaults have deposits open. USDC Frontier on mainnet (v2): actions in-progress with 3-5 day timelocks remaining.",
+        tweets: [
+          {
+            author: "Gauntlet",
+            handle: "@gauntlet_xyz",
+            text: "USDC Frontier on Base (v1): deallocated from all Resolv markets with no bad debt. Both the v1 and v2 vaults now have deposits open. USDC Frontier on mainnet (v2) actions in-progress to re-open the vault by remaining timelock.",
+            url: "https://x.com/gauntlet_xyz/status/2037338042558759186",
+          },
+        ],
+      },
+    },
   ].sort((a, b) => {
     // Parse "Mar 22, 2026 · 05:24 UTC" → sortable date
     const parse = (d: string) => {
