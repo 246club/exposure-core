@@ -30,7 +30,11 @@ import {
   pushBreadcrumbHistory,
   type BreadcrumbItem,
 } from "@/lib/breadcrumbs";
-import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
+import {
+  canonicalizeNodeId,
+  canonicalizeProtocolToken,
+  extractAddressKeyFromNodeId,
+} from "@/lib/nodeId";
 import { formatChainLabel, formatUiLabel } from "@/utils/formatters";
 
 const shortChainLabel = (value: string): string => formatChainLabel(value);
@@ -98,6 +102,9 @@ function UniversalTreemapView({
   );
 
   const [graphRootIds, setGraphRootIds] = useState<Set<string>>(new Set());
+  const [graphRootEntriesByAddress, setGraphRootEntriesByAddress] = useState<
+    Map<string, SearchIndexEntry[]>
+  >(new Map());
   const [assetNameById, setAssetNameById] = useState<Map<string, string>>(
     new Map(),
   );
@@ -180,15 +187,22 @@ function UniversalTreemapView({
         if (!Array.isArray(json)) return;
         const set = new Set<string>();
         const names = new Map<string, string>();
+        const entriesByAddress = new Map<string, SearchIndexEntry[]>();
         json.forEach((entry) => {
           const canonicalId = canonicalizeNodeId(entry.id);
           set.add(canonicalId);
           if (!names.has(canonicalId)) {
             names.set(canonicalId, entry.name);
           }
+          const addressKey = extractAddressKeyFromNodeId(canonicalId);
+          if (!addressKey) return;
+
+          const current = entriesByAddress.get(addressKey) ?? [];
+          entriesByAddress.set(addressKey, [...current, entry]);
         });
         setGraphRootIds(set);
         setAssetNameById(names);
+        setGraphRootEntriesByAddress(entriesByAddress);
       } catch {
         /* ignore */
       }
@@ -248,23 +262,46 @@ function UniversalTreemapView({
                   );
                   const canonicalId = canonicalizeNodeId(node.id);
                   const isKnownAsset = graphRootIds.has(canonicalId);
+                  const fallbackEntry = (() => {
+                    const addressKey = extractAddressKeyFromNodeId(canonicalId);
+                    if (!addressKey) return null;
+
+                    const candidates =
+                      graphRootEntriesByAddress.get(addressKey) ?? [];
+                    if (candidates.length === 0) return null;
+
+                    return (
+                      candidates.find(
+                        (entry) =>
+                          canonicalizeProtocolToken(entry.protocol) ===
+                          canonicalizeProtocolToken(node.protocol ?? ""),
+                      ) ?? candidates[0]
+                    );
+                  })();
+                  const targetEntry = isKnownAsset
+                    ? {
+                        id: canonicalId,
+                        chain: node.chain,
+                        protocol: node.protocol,
+                      }
+                    : fallbackEntry;
 
                   if (hasChildren) {
                     applyLocalDrilldown(node);
                   } else if (
-                    isKnownAsset &&
+                    targetEntry &&
                     node.id.toLowerCase() !== asset?.id.toLowerCase()
                   ) {
                     const [chainFromId = "global", protocolFromId = ""] =
-                      canonicalId.split(":");
+                      canonicalizeNodeId(targetEntry.id).split(":");
                     const nextHistory = pushBreadcrumbHistory(
                       history,
                       canonicalizeNodeId(asset?.id ?? ""),
                     );
                     onSelectAsset(
-                      canonicalId,
-                      chainFromId || "global",
-                      protocolFromId || "",
+                      canonicalizeNodeId(targetEntry.id),
+                      (targetEntry.chain || chainFromId || "global").trim(),
+                      (targetEntry.protocol || protocolFromId || "").trim(),
                       nextHistory,
                     );
                   }

@@ -32,3 +32,18 @@ export const canonicalizeNodeId = (raw: string): string => {
 
   return rest ? `${chain}:${protocol}:${rest}` : `${chain}:${protocol}`;
 };
+
+const ADDRESS_PATTERN = /^0x[a-f0-9]{40}$/;
+
+export const extractAddressKeyFromNodeId = (raw: string): string | null => {
+  const normalized = canonicalizeNodeId(raw);
+  if (!normalized) return null;
+
+  const parts = normalized.split(":");
+  if (parts.length !== 3) return null;
+
+  const [chain, , address] = parts;
+  if (!chain || !address || !ADDRESS_PATTERN.test(address)) return null;
+
+  return `${chain}:${address}`;
+};

@@ -23,7 +23,11 @@ import { useTerminalToast } from "@/hooks/useTerminalToast";
 import { GraphNode } from "@/types";
 import { type SearchIndexEntry } from "@/constants";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
-import { canonicalizeNodeId, canonicalizeProtocolToken } from "@/lib/nodeId";
+import {
+  canonicalizeNodeId,
+  canonicalizeProtocolToken,
+  extractAddressKeyFromNodeId,
+} from "@/lib/nodeId";
 import { classifyNodeType, getNodeTypeParts } from "@/lib/nodeType";
 import { getDirectChildNodes } from "@/lib/graph";
 import {
@@ -139,6 +143,19 @@ export default function AssetPage() {
     () => new Set(preparedIndex.map((entry) => entry.normalizedId)),
     [preparedIndex],
   );
+  const graphRootEntriesByAddress = useMemo(() => {
+    const entries = new Map<string, SearchIndexEntry[]>();
+
+    for (const entry of preparedIndex) {
+      const addressKey = extractAddressKeyFromNodeId(entry.normalizedId);
+      if (!addressKey) continue;
+
+      const current = entries.get(addressKey) ?? [];
+      entries.set(addressKey, [...current, entry]);
+    }
+
+    return entries;
+  }, [preparedIndex]);
   const activeRootEntry = useMemo(() => {
     return preparedIndex.find(
       (entry) => entry.normalizedId === canonicalAssetId,
@@ -283,11 +300,32 @@ export default function AssetPage() {
 
     const normalizedNodeId = canonicalizeNodeId(node.id);
     const isKnownAsset = graphRootIds.has(normalizedNodeId);
+    const fallbackEntry = (() => {
+      const addressKey = extractAddressKeyFromNodeId(normalizedNodeId);
+      if (!addressKey) return null;
 
-    if (isKnownAsset && normalizedNodeId !== canonicalAssetId) {
+      const candidates = graphRootEntriesByAddress.get(addressKey) ?? [];
+      if (candidates.length === 0) return null;
+
+      return (
+        candidates.find(
+          (entry) =>
+            canonicalizeProtocolToken(entry.protocol) ===
+            canonicalizeProtocolToken(node.protocol ?? ""),
+        ) ?? candidates[0]
+      );
+    })();
+    const targetEntry = isKnownAsset
+      ? { id: normalizedNodeId, chain: node.chain, protocol: node.protocol }
+      : fallbackEntry;
+
+    if (
+      targetEntry &&
+      canonicalizeNodeId(targetEntry.id) !== canonicalAssetId
+    ) {
       const queryParams = new URLSearchParams(searchParams.toString());
-      const nextProtocol = (node.protocol ?? protocol)?.trim();
-      const nextChain = (node.chain ?? chain)?.trim();
+      const nextProtocol = (targetEntry.protocol ?? protocol)?.trim();
+      const nextChain = (targetEntry.chain ?? chain)?.trim();
       if (nextProtocol) queryParams.set("protocol", nextProtocol);
       else queryParams.delete("protocol");
       if (nextChain) queryParams.set("chain", nextChain);
@@ -306,7 +344,7 @@ export default function AssetPage() {
       }
 
       router.push(
-        `/asset/${encodeURIComponent(normalizedNodeId)}?${queryParams.toString()}`,
+        `/asset/${encodeURIComponent(canonicalizeNodeId(targetEntry.id))}?${queryParams.toString()}`,
       );
       return;
     }
