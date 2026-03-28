@@ -10,22 +10,16 @@ import {
   protocolToFolder,
 } from "@/lib/blobPaths";
 import { resolveRootNode } from "@/lib/graph";
+import {
+  isGraphSnapshot,
+  loadBlobProtocolPayload,
+  loadFixtureProtocolPayload,
+} from "@/lib/graphLoader";
 import { resolveRepoPathFromWebCwd } from "@/lib/repoPaths";
 import { listGraphProtocolBlobPaths, tryHeadBlobUrl } from "@/lib/vercelBlob";
 import type { GraphAllocationPreview, GraphSnapshot } from "@/types";
 
 export const runtime = "nodejs";
-
-interface BlobProtocolPayload {
-  path: string;
-  url: string;
-  snapshots: Record<string, unknown>;
-}
-
-interface FixtureProtocolPayload {
-  path: string;
-  snapshots: Record<string, unknown>;
-}
 
 const decodePathParam = (raw: string): string => {
   let decoded = raw;
@@ -44,13 +38,6 @@ const normalizeNodeIdFromPathParam = (raw: string): string => {
 
 const decodedNodeIdFromPathParam = (raw: string): string => {
   return decodePathParam(raw);
-};
-
-const isGraphSnapshot = (value: unknown): value is GraphSnapshot => {
-  if (!value || typeof value !== "object") return false;
-
-  const snapshot = value as Partial<GraphSnapshot>;
-  return Array.isArray(snapshot.nodes) && Array.isArray(snapshot.edges);
 };
 
 const normalizeAllocationPreviews = (
@@ -75,56 +62,6 @@ const normalizeAllocationPreviews = (
     })
     .filter((entry) => Number.isFinite(entry.value) && entry.value > 0)
     .sort((a, b) => b.value - a.value);
-};
-
-const loadBlobProtocolPayload = async (
-  protocol: string,
-): Promise<BlobProtocolPayload | null> => {
-  const path = graphProtocolBlobPath(protocol);
-  const url = await tryHeadBlobUrl(path);
-
-  if (!url) return null;
-
-  try {
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) return null;
-
-    const payload = (await response.json()) as unknown;
-    if (!payload || typeof payload !== "object") return null;
-
-    return {
-      path,
-      url,
-      snapshots: payload as Record<string, unknown>,
-    };
-  } catch (error) {
-    console.error(`Failed to load snapshot group from ${url}:`, error);
-    return null;
-  }
-};
-
-const loadFixtureProtocolPayload = async (
-  protocol: string,
-): Promise<FixtureProtocolPayload | null> => {
-  const fixturesRoot = resolveRepoPathFromWebCwd(
-    "server",
-    "fixtures",
-    "output",
-  );
-  const path = resolve(fixturesRoot, `${protocol}.json`);
-
-  try {
-    const raw = await readFile(path, "utf8");
-    const payload = JSON.parse(raw) as unknown;
-    if (!payload || typeof payload !== "object") return null;
-
-    return {
-      path,
-      snapshots: payload as Record<string, unknown>,
-    };
-  } catch {
-    return null;
-  }
 };
 
 const loadBlobSnapshotForNode = async (
