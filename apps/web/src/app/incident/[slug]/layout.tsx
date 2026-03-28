@@ -56,7 +56,10 @@ export default async function IncidentLayout({
         color: "var(--text-primary)",
       }}
     >
-      <IncidentNav title={config.title} lastUpdated={config.lastUpdated} />
+      <IncidentNav
+        title={config.title}
+        lastUpdated={new Date().toISOString()}
+      />
       <main>{children}</main>
     </div>
   );
