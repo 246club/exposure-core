@@ -65,7 +65,7 @@ Search Index (server/src/exposure/searchIndex.ts) — builds searchable metadata
 Vercel Blob Storage (exposure/graph/{protocol}.json, exposure/search-index.json)
 ```
 
-Production pipeline runs every 10 minutes via Vercel cron (`server/api/cron/generate-graphs.ts`).
+Production pipeline runs hourly via Vercel cron (`server/api/cron/generate-graphs.ts`).
 
 ### Adapter Pattern
 
