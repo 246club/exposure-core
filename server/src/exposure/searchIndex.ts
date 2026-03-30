@@ -4,6 +4,7 @@ import {
   inferAssetLogoKey,
   normalizeLogoKey,
 } from "../resolvers/debank/utils.js";
+import { inferProtocolFolderFromNodeId } from "../utils/graphPaths.js";
 
 export type GraphSnapshotGroup = Record<string, GraphSnapshot>;
 
@@ -329,7 +330,8 @@ export const mergeSearchIndexEntries = (params: {
   );
 
   const retainedBaseEntries = Array.from(params.baseEntries).filter((entry) => {
-    return !protocols.has(entry.protocol.trim().toLowerCase());
+    const protocolFolder = inferProtocolFolderFromNodeId(entry.id);
+    return !protocolFolder || !protocols.has(protocolFolder);
   });
 
   return dedupeAndSortSearchIndexEntries([

@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,22 +18,31 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const serverDir = resolve(here, "..", "..");
 
-const ALL_ADAPTER_NAMES = [
-  "midas",
-  "morpho",
-  "infinifi",
-  "resolv",
-  "yuzu",
-  "ethena",
-  "gauntlet",
-  "sky",
-  "euler",
-] as const;
-
 const selectedAdapterFactories = Object.values(adapterFactories);
 
-const shouldMergeExistingSearchIndex = (): boolean => {
-  return Object.keys(adapterFactories).length < ALL_ADAPTER_NAMES.length;
+const shouldMergeExistingSearchIndex = async (
+  outputDir: string,
+  regeneratedProtocols: Iterable<string>,
+): Promise<boolean> => {
+  const nextProtocols = new Set(
+    Array.from(regeneratedProtocols, (protocol) => protocol.trim()).filter(
+      Boolean,
+    ),
+  );
+
+  if (nextProtocols.size === 0) return false;
+
+  try {
+    const existingFiles = await readdir(outputDir);
+    const existingProtocols = existingFiles
+      .filter((fileName) => fileName.endsWith(".json"))
+      .map((fileName) => fileName.slice(0, -5))
+      .filter((protocol) => protocol !== "search-index");
+
+    return existingProtocols.some((protocol) => !nextProtocols.has(protocol));
+  } catch {
+    return false;
+  }
 };
 
 const main = async (): Promise<void> => {
@@ -60,7 +69,10 @@ const main = async (): Promise<void> => {
   // adapters, which dropped unrelated protocols from the index. Now we treat
   // the current `adapterFactories` object as the regeneration scope and merge
   // only those protocol entries back into the existing search index.
-  const searchIndex = shouldMergeExistingSearchIndex()
+  const searchIndex = (await shouldMergeExistingSearchIndex(
+    outputDir,
+    groupedSnapshots.keys(),
+  ))
     ? await (async (): Promise<SearchIndexEntry[]> => {
         try {
           const baseSearchIndex =
