@@ -8,6 +8,7 @@ import {
 } from "./fetcher.js";
 import {
   buildProtocolListItemId,
+  buildLendingPositionAssetId,
   buildAppListItemId,
   inferTokenLogoKey,
   isAllocationUsdEligible,
@@ -173,12 +174,10 @@ const processLendingItem = (params: {
     const tokenProtocol = resolveTokenProtocolNamespace(token);
     const tokenLogoKeys = resolveTokenLogoKeys(token);
     const tokenName = token.symbol ?? token.name ?? "";
-    const tokenId = buildProtocolListItemId(
+    const tokenId = buildLendingPositionAssetId({
       chain,
-      tokenProtocol,
-      token.id ?? "",
-      undefined,
-    );
+      token,
+    });
 
     // create placeholder for token node
     // it would be best to fill this node with the token related market info
@@ -186,7 +185,7 @@ const processLendingItem = (params: {
     // fill the other field with another protocol adapters (e.g token deatails)
     nodes.push({
       id: tokenId,
-      chain: chainSlug,
+      chain: normalizeChain(token.chain || chain),
       name: tokenName,
       protocol: tokenProtocol,
       ...(tokenLogoKeys.length > 0 ? { logoKeys: tokenLogoKeys } : {}),
@@ -205,16 +204,14 @@ const processLendingItem = (params: {
     const tokenProtocol = resolveTokenProtocolNamespace(token);
     const tokenLogoKeys = resolveTokenLogoKeys(token);
     const tokenName = token.symbol ?? token.name ?? "";
-    const tokenId = buildProtocolListItemId(
+    const tokenId = buildLendingPositionAssetId({
       chain,
-      tokenProtocol,
-      token.id ?? "",
-      undefined,
-    );
+      token,
+    });
 
     nodes.push({
       id: tokenId,
-      chain: chainSlug,
+      chain: normalizeChain(token.chain || chain),
       name: tokenName,
       protocol: tokenProtocol,
       ...(tokenLogoKeys.length > 0 ? { logoKeys: tokenLogoKeys } : {}),

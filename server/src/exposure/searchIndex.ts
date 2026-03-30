@@ -4,6 +4,7 @@ import {
   inferAssetLogoKey,
   normalizeLogoKey,
 } from "../resolvers/debank/utils.js";
+import { inferProtocolFolderFromNodeId } from "../utils/graphPaths.js";
 
 export type GraphSnapshotGroup = Record<string, GraphSnapshot>;
 
@@ -290,7 +291,14 @@ const collectSearchIndexEntriesFromSnapshots = (
 export const buildSearchIndex = (
   snapshots: Iterable<Snapshot>,
 ): SearchIndexEntry[] => {
-  const entries = collectSearchIndexEntriesFromSnapshots(snapshots);
+  return dedupeAndSortSearchIndexEntries(
+    collectSearchIndexEntriesFromSnapshots(snapshots),
+  );
+};
+
+const dedupeAndSortSearchIndexEntries = (
+  entries: Iterable<SearchIndexEntry>,
+): SearchIndexEntry[] => {
   const seen = new Set<string>();
   const deduped: SearchIndexEntry[] = [];
 
@@ -303,6 +311,33 @@ export const buildSearchIndex = (
 
   deduped.sort((a, b) => a.name.localeCompare(b.name));
   return deduped;
+};
+
+export const mergeSearchIndexEntries = (params: {
+  baseEntries: Iterable<SearchIndexEntry>;
+  nextEntries: Iterable<SearchIndexEntry>;
+  replaceProtocols: Iterable<string>;
+}): SearchIndexEntry[] => {
+  // In dev we sometimes regenerate only a subset of adapters. Before this
+  // merge helper existed, rebuilding the search index from that subset dropped
+  // unrelated protocols from `search-index.json`. Keep the existing entries for
+  // untouched protocols and replace only the protocols regenerated in the
+  // current run.
+  const protocols = new Set(
+    Array.from(params.replaceProtocols, (value) =>
+      value.trim().toLowerCase(),
+    ).filter(Boolean),
+  );
+
+  const retainedBaseEntries = Array.from(params.baseEntries).filter((entry) => {
+    const protocolFolder = inferProtocolFolderFromNodeId(entry.id);
+    return !protocolFolder || !protocols.has(protocolFolder);
+  });
+
+  return dedupeAndSortSearchIndexEntries([
+    ...retainedBaseEntries,
+    ...params.nextEntries,
+  ]);
 };
 
 export const buildSearchIndexFromProtocolGroups = (

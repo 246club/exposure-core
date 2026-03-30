@@ -28,6 +28,8 @@ const INFINIFI_PROTOCOL = "infinifi" as const;
 const MIN_IDLE_THRESHOLD = 0.01;
 const ASSET_IUSD = "iUSD" as const;
 const ASSET_SIUSD = "siUSD" as const;
+const IUSD_ADDRESS = "0x48f9e38f3070ad8945dfeae3fa70987722e3d89c" as const;
+const SIUSD_ADDRESS = "0xdbdc1ef57537e34680b898e1febd3d68c7389bcb" as const;
 
 interface InfinifiLockedStats {
   name: string;
@@ -78,6 +80,14 @@ const buildInfinifiNodeId = (identifier: string): string => {
   }).id;
 };
 
+const buildInfinifiAssetId = (address: string): string => {
+  return buildCanonicalIdentity({
+    chain: INFINIFI_CHAIN,
+    protocol: INFINIFI_PROTOCOL,
+    address,
+  }).id;
+};
+
 const normalizeiUSDLeaves = (
   root: Node,
   stats: InfinifiStats,
@@ -91,7 +101,7 @@ const normalizeiUSDLeaves = (
   );
 
   const siUsdNode: Node = {
-    id: buildInfinifiNodeId("siusd"),
+    id: buildInfinifiAssetId(SIUSD_ADDRESS),
     chain: INFINIFI_CHAIN,
     name: stats.staked.name,
     protocol: INFINIFI_PROTOCOL,
@@ -104,7 +114,7 @@ const normalizeiUSDLeaves = (
 
   edges.push({
     from: root.id,
-    to: buildInfinifiNodeId("siusd"),
+    to: buildInfinifiAssetId(SIUSD_ADDRESS),
     allocationUsd: totalStakedInUsd,
   });
 
@@ -255,7 +265,7 @@ export const createInfinifiAdapter = (): Adapter<
 
       if (asset === ASSET_IUSD) {
         return {
-          id: buildInfinifiNodeId("iusd"),
+          id: buildInfinifiAssetId(IUSD_ADDRESS),
           chain: INFINIFI_CHAIN,
           name: stats.receipt.name,
           protocol: INFINIFI_PROTOCOL,
@@ -266,7 +276,7 @@ export const createInfinifiAdapter = (): Adapter<
 
       if (asset === ASSET_SIUSD) {
         return {
-          id: buildInfinifiNodeId("siusd"),
+          id: buildInfinifiAssetId(SIUSD_ADDRESS),
           chain: INFINIFI_CHAIN,
           name: "siUSD",
           protocol: INFINIFI_PROTOCOL,
@@ -290,7 +300,7 @@ export const createInfinifiAdapter = (): Adapter<
       };
     },
     async normalizeLeaves(root, allocations) {
-      if (root.id === buildInfinifiNodeId("iusd")) {
+      if (root.id === buildInfinifiAssetId(IUSD_ADDRESS)) {
         const [apiAlloc] = allocations;
 
         if (!apiAlloc || apiAlloc.type !== "infinifiApi") {
@@ -300,7 +310,7 @@ export const createInfinifiAdapter = (): Adapter<
         return normalizeiUSDLeaves(root, apiAlloc.data.stats);
       }
 
-      if (root.id === buildInfinifiNodeId("siusd")) {
+      if (root.id === buildInfinifiAssetId(SIUSD_ADDRESS)) {
         const [, walletAlloc] = allocations;
 
         if (!walletAlloc || walletAlloc.type !== "debankWallets") {
