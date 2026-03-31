@@ -1,1 +1,13 @@
-<!doctype html><html lang="en" style="height:100%"><head><meta charset="utf-8"/><script src="/charting_library_v28.5/charting_library/charting_library.js?bust=v8"></script><title>Hyperliquid</title><meta name="description" content="Trade 100+ perps and spot assets on Hyperliquid, a decentralized Layer 1 blockchain with fully onchain order books."/><base href="/"/><link rel="manifest" href="/manifest.json"/><meta name="color-scheme" content="dark"/><meta name="viewport" content="viewport-fit=cover,width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,interactive-widget=resizes-content"/><meta name="format-detection" content="telephone=no"/><meta name="msapplication-tap-highlight" content="no"/><link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"/><link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png"/><link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black"/><meta name="version" content="1"/><script defer="defer" src="/static/js/main.66eeb09a.js"></script><link href="/static/css/main.0e42622f.css" rel="stylesheet"></head><body style="background-color:#303030"><div id="root" style="height:100%"></div><script src="https://hyperliquid.statuspage.io/embed/script.js"></script></body></html>
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ufart-bg" x1="18" y1="14" x2="102" y2="106" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#7c2d12"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="108" height="108" rx="24" fill="url(#ufart-bg)"/>
+  <circle cx="60" cy="44" r="16" fill="#fff7ed" fill-opacity="0.22"/>
+  <circle cx="42" cy="72" r="10" fill="#fff7ed" fill-opacity="0.16"/>
+  <circle cx="80" cy="76" r="8" fill="#fff7ed" fill-opacity="0.16"/>
+  <text x="60" y="69" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#fff7ed">UF</text>
+</svg>
