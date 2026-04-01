@@ -8,7 +8,7 @@ const ETHENA_BACKING_URL =
 // adds heavier logic than we need here. For sUSDe APY we instead use Ethena's
 // own lightweight endpoint and read `stakingYield.value`.
 const ETHENA_YIELDS_URL =
-  "https://app.ethena.fi/api/yields/protocol-and-staking-yield";
+  "https://ethena.fi/api/yields/protocol-and-staking-yield";
 
 interface EthenaCollateralEntry {
   asset: string;
