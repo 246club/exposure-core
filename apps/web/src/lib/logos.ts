@@ -414,7 +414,7 @@ function getPtSpecificLogos(name: string): string[] | null {
 
 function getLogoPathsFromKeys(logoKeys: string[]): string[] {
   return logoKeys
-    .map((key) => getAssetLogoPath(key))
+    .map((key) => getBrandedAssetLogoPath(key) ?? getAssetLogoPath(key))
     .filter(
       (path): path is string => typeof path === "string" && path.length > 0,
     );
