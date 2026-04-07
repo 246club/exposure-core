@@ -57,6 +57,16 @@ const getMorphoCollateralLabel = (
   );
 };
 
+const buildSyntheticLogoKeys = (
+  values: (string | null | undefined)[],
+): string[] => {
+  return values.flatMap((value) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return [];
+    return [inferAssetLogoKey(trimmed) ?? trimmed];
+  });
+};
+
 interface AssetTreeMapProps {
   data: GraphSnapshot | null;
   rootNodeId?: string;
@@ -290,13 +300,11 @@ export default function AssetTreeMap({
       | { name: string; protocol?: string | null; logoKeys?: string[] }
       | undefined => {
       if (lendingPair?.collateral || lendingPair?.borrow) {
-        const keys = [lendingPair.collateral, lendingPair.borrow].filter(
-          (value): value is string => Boolean(value),
-        );
-        const inferredKeys = keys
-          .map((value) => inferAssetLogoKey(value) ?? value)
-          .filter(Boolean);
-        if (keys.length > 0) {
+        const logoKeys = buildSyntheticLogoKeys([
+          lendingPair.collateral,
+          lendingPair.borrow,
+        ]);
+        if (logoKeys.length > 0) {
           return {
             name:
               lendingPair.collateral && lendingPair.borrow
@@ -305,22 +313,22 @@ export default function AssetTreeMap({
                   lendingPair.borrow ??
                   node?.name ??
                   ""),
-            logoKeys: inferredKeys,
+            logoKeys,
           };
         }
       }
 
       const explicitLogoKeys = Array.isArray(node?.logoKeys)
-        ? node.logoKeys.filter(Boolean)
+        ? node.logoKeys.filter(
+            (value): value is string =>
+              typeof value === "string" && value.trim().length > 0,
+          )
         : [];
       if (explicitLogoKeys.length > 0) {
-        const inferredLogoKeys = explicitLogoKeys
-          .map((value) => inferAssetLogoKey(value) ?? value)
-          .filter(Boolean);
         return {
-          name: node?.name ?? inferredLogoKeys[0] ?? "",
+          name: node?.name ?? explicitLogoKeys[0] ?? "",
           protocol: node?.protocol,
-          logoKeys: inferredLogoKeys,
+          logoKeys: explicitLogoKeys,
         };
       }
 
@@ -329,7 +337,6 @@ export default function AssetTreeMap({
       return {
         name: protocol,
         protocol,
-        logoKeys: [protocol],
       };
     };
 
@@ -386,6 +393,9 @@ export default function AssetTreeMap({
       const isVault =
         kind === "yield" || kind === "lending" || subtype.includes("vault");
       const isMorphoLendingMarket = isMorphoRoot && isLendingNode(node);
+      const collateralLogoKeys = buildSyntheticLogoKeys([
+        lendingPair?.collateral,
+      ]);
       return {
         name: (() => {
           if (!node) return c.id;
@@ -418,12 +428,10 @@ export default function AssetTreeMap({
                   }
                   return c.id;
                 })(),
-                logoKeys: lendingPair?.collateral
-                  ? [
-                      inferAssetLogoKey(lendingPair.collateral) ??
-                        lendingPair.collateral,
-                    ]
-                  : undefined,
+                logoKeys:
+                  collateralLogoKeys.length > 0
+                    ? collateralLogoKeys
+                    : undefined,
               }
             : undefined,
         lendingPair: lendingPair ?? undefined,
@@ -564,33 +572,31 @@ export default function AssetTreeMap({
               ref={tooltipRef}
               className="fixed z-50 pointer-events-none"
               style={(() => {
-                const pad = 14;
                 const offsetX = 18;
                 const offsetY = 14;
+                const gutter = 12;
 
                 const w = tooltipSize?.w ?? 280;
-                const h = tooltipSize?.h ?? 170;
-
+                const h = tooltipSize?.h ?? 0;
+                const viewport =
+                  typeof window === "undefined" ? null : window.visualViewport;
                 const viewportWidth =
-                  typeof window === "undefined"
+                  viewport?.width ??
+                  (typeof window === "undefined"
                     ? containerSize.width
-                    : window.innerWidth;
+                    : window.innerWidth);
                 const viewportHeight =
-                  typeof window === "undefined"
+                  viewport?.height ??
+                  (typeof window === "undefined"
                     ? containerSize.height
-                    : window.innerHeight;
+                    : window.innerHeight);
 
-                const maxX = Math.max(pad, viewportWidth - pad - w);
-                const maxY = Math.max(pad, viewportHeight - pad - h);
-
-                const left = Math.max(
-                  pad,
-                  Math.min(maxX, hoverState.clientX + offsetX),
-                );
-                const top = Math.max(
-                  pad,
-                  Math.min(maxY, hoverState.clientY + offsetY),
-                );
+                const baseLeft = hoverState.clientX - w - offsetX;
+                const baseTop = hoverState.clientY + offsetY;
+                const maxLeft = Math.max(gutter, viewportWidth - w - gutter);
+                const maxTop = Math.max(gutter, viewportHeight - h - gutter);
+                const left = Math.min(Math.max(baseLeft, gutter), maxLeft);
+                const top = Math.min(Math.max(baseTop, gutter), maxTop);
 
                 return {
                   left,
