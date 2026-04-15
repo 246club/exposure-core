@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { ChevronRight, ShieldCheck, ExternalLink } from "lucide-react";
 import {
   currencyFormatter,
@@ -23,6 +24,8 @@ interface RootNodeHeaderProps {
   children?: GraphNode[];
   tvl?: number | null;
   onBack?: () => void;
+  dashboardHref?: string;
+  dashboardCtaLabel?: string;
 }
 
 export function RootNodeHeader({
@@ -30,6 +33,8 @@ export function RootNodeHeader({
   children,
   tvl,
   onBack,
+  dashboardHref,
+  dashboardCtaLabel = "INCLUDING EXPOSURE",
 }: RootNodeHeaderProps) {
   const logos = getNodeLogos(node);
   const isEulerEarnVault =
@@ -222,6 +227,14 @@ export function RootNodeHeader({
 
       {/* Action Links */}
       <div className="flex items-center gap-2 shrink-0">
+        {dashboardHref && (
+          <Link
+            href={dashboardHref}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-black text-white text-[8px] font-semibold tracking-[0.08em] rounded-full hover:bg-black/80 transition-colors shadow-sm"
+          >
+            {dashboardCtaLabel}
+          </Link>
+        )}
         {primaryActionUrl && (
           <a
             href={primaryActionUrl}

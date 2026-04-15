@@ -22,6 +22,7 @@ import { useAssetData } from "@/hooks/useAssetData";
 import { useTerminalToast } from "@/hooks/useTerminalToast";
 import { GraphNode } from "@/types";
 import { type SearchIndexEntry } from "@/constants";
+import { buildExposureDashboardHref } from "@/lib/dashboard";
 import { hasChainLogo, getChainLogoPath } from "@/lib/logos";
 import {
   buildEntriesByAddress,
@@ -148,6 +149,17 @@ export default function AssetPage() {
     if (!graphData || !headerNode) return [];
     return getDirectChildNodes(headerNode, graphData.nodes, graphData.edges);
   }, [graphData, headerNode]);
+  const dashboardHref =
+    rootNode && headerNode && headerNode.id === rootNode.id && activeRootEntry
+      ? buildExposureDashboardHref({
+          id: activeRootEntry.id,
+          chain: activeRootEntry.chain,
+          protocol: activeRootEntry.protocol,
+          name: activeRootEntry.name,
+          displayName: activeRootEntry.displayName,
+          logoKeys: activeRootEntry.logoKeys ?? null,
+        })
+      : undefined;
 
   useEffect(() => {
     const load = async () => {
@@ -511,6 +523,7 @@ export default function AssetPage() {
                 node={headerNode}
                 children={headerChildren}
                 tvl={tvl}
+                dashboardHref={dashboardHref}
                 onBack={
                   !isAtAssetRoot || isOthersView ? handleBackOneStep : undefined
                 }

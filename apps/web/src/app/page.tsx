@@ -17,6 +17,7 @@ import { RootNodeHeader } from "@/components/RootNodeHeader";
 import { AppHeader } from "@/components/AppHeader";
 import { GraphNode } from "@/types";
 import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
+import { buildExposureDashboardHref } from "@/lib/dashboard";
 import { getDirectChildNodes } from "@/lib/graph";
 import {
   buildChainLabel,
@@ -202,6 +203,17 @@ function UniversalTreemapView({
     if (!graphData || !headerNode) return [];
     return getDirectChildNodes(headerNode, graphData.nodes, graphData.edges);
   }, [graphData, headerNode]);
+  const dashboardHref =
+    rootNode && headerNode && headerNode.id === rootNode.id && asset
+      ? buildExposureDashboardHref({
+          id: asset.id,
+          chain: asset.chain,
+          protocol: asset.protocol,
+          name: asset.name,
+          displayName: asset.displayName,
+          logoKeys: asset.logoKeys ?? null,
+        })
+      : undefined;
 
   if (loading || !graphData) {
     return (
@@ -222,6 +234,7 @@ function UniversalTreemapView({
               node={headerNode}
               children={headerChildren}
               tvl={tvl}
+              dashboardHref={dashboardHref}
               onBack={
                 isOthersView || (rootNode && focusRootNodeId !== rootNode.id)
                   ? handleBackOneStep
