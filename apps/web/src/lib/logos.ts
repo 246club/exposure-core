@@ -585,9 +585,13 @@ const PROTOCOL_LOGO_KEYS = new Set<string>([
   "euler",
   "fireblocks",
   "fordefi",
+  "fluid",
   "gauntlet",
+  "gearbox",
   "hyperliquid",
   "infinifi",
+  "inverse",
+  "lista-dao",
   "lighter",
   "midas",
   "morpho",
@@ -597,6 +601,9 @@ const PROTOCOL_LOGO_KEYS = new Set<string>([
   "resolv",
   "safe",
   "sky",
+  "upshift",
+  "venus",
+  "yo",
   "yuzu",
 ]);
 

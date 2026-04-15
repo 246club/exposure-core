@@ -9,6 +9,7 @@ import {
   useDeferredValue,
 } from "react";
 import { Activity } from "lucide-react";
+import Link from "next/link";
 import { type SearchIndexEntry } from "@/constants";
 import { useSearchParams, useRouter } from "next/navigation";
 import AssetTreeMap from "@/components/AssetTreeMap";
@@ -229,12 +230,21 @@ function UniversalTreemapView({
 
       <div className="w-full border border-black bg-[#EAE5D9] shadow-2xl overflow-hidden relative p-3">
         <div className="flex flex-col gap-2 h-[50vh] lg:h-[60vh]">
+          {dashboardHref && (
+            <div className="flex justify-end px-3 pt-1.5">
+              <Link
+                href={dashboardHref}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-black text-white text-[8px] font-semibold tracking-[0.08em] rounded-full hover:bg-black/80 transition-colors shadow-sm"
+              >
+                INCLUDING EXPOSURE
+              </Link>
+            </div>
+          )}
           {headerNode && (
             <RootNodeHeader
               node={headerNode}
               children={headerChildren}
               tvl={tvl}
-              dashboardHref={dashboardHref}
               onBack={
                 isOthersView || (rootNode && focusRootNodeId !== rootNode.id)
                   ? handleBackOneStep

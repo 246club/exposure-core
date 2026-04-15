@@ -213,6 +213,21 @@ describe("detectToxicExposure", () => {
     expect(result.toxicExposureUsd).toBe(1_000);
   });
 
+  it("matches by chain+address alias when protocol differs", () => {
+    const snap = makeSnapshot("root", "Vault", [
+      {
+        id: "eth:morpho-v1:0x66a1e37c9b0eaddca17d3662d6c05f4decf3e110",
+        name: "Unknown",
+        allocationUsd: 750,
+      },
+    ]);
+    const result = detectToxicExposure(snap, "root", ["USR"], TOXIC_NODE_IDS);
+    expect(result.toxicExposureUsd).toBe(750);
+    expect(result.breakdown).toContainEqual(
+      expect.objectContaining({ asset: "USR", amountUsd: 750 }),
+    );
+  });
+
   // Aggregation
   it("aggregates multiple toxic assets correctly", () => {
     const snap = makeSnapshot("root", "Vault", [

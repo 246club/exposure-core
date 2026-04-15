@@ -1,4 +1,5 @@
 import type { GraphSnapshot } from "@/types";
+import { extractAddressKeyFromNodeId } from "@/lib/nodeId";
 import type { ToxicBreakdownEntry, ToxicAllocation } from "./types";
 
 export interface DetectionResult {
@@ -21,26 +22,37 @@ export interface DetectionResult {
  * Returns the matched toxic asset symbol, or null if none matched.
  */
 function matchToxicAsset(token: string, toxicAssets: string[]): string | null {
+  const canonicalByNormalized = new Map<string, string>();
+  for (const asset of toxicAssets) {
+    const normalized = asset.trim().toLowerCase();
+    if (!normalized || canonicalByNormalized.has(normalized)) continue;
+    canonicalByNormalized.set(normalized, asset);
+  }
+  const normalizedToken = token.trim().toLowerCase();
+
   // Direct exact match (case-sensitive, as symbols are uppercase)
-  if (toxicAssets.includes(token)) {
-    return token;
+  const exact = canonicalByNormalized.get(normalizedToken);
+  if (exact) {
+    return exact;
   }
 
   // PT-<TOKEN>-<DATE> derivative (Pendle)
   const ptMatch = token.match(/^PT-([^-]+(?:-[^-]+)*?)-\d+[A-Z]+\d+$/);
   if (ptMatch) {
-    const underlying = ptMatch[1];
-    if (toxicAssets.includes(underlying)) {
-      return underlying;
+    const underlying = ptMatch[1]?.trim().toLowerCase() ?? "";
+    const canonical = canonicalByNormalized.get(underlying);
+    if (canonical) {
+      return canonical;
     }
   }
 
   // MC-<TOKEN> derivative
   const mcMatch = token.match(/^MC-(.+)$/);
   if (mcMatch) {
-    const underlying = mcMatch[1];
-    if (toxicAssets.includes(underlying)) {
-      return underlying;
+    const underlying = mcMatch[1]?.trim().toLowerCase() ?? "";
+    const canonical = canonicalByNormalized.get(underlying);
+    if (canonical) {
+      return canonical;
     }
   }
 
@@ -62,22 +74,32 @@ function matchSubstringToxic(
   name: string,
   toxicAssets: string[],
 ): string | null {
+  const canonicalByNormalized = new Map<string, string>();
+  for (const asset of toxicAssets) {
+    const normalized = asset.trim().toLowerCase();
+    if (!normalized || canonicalByNormalized.has(normalized)) continue;
+    canonicalByNormalized.set(normalized, asset);
+  }
+  const normalizedName = name.toLowerCase();
+
   // First try derivative patterns embedded in the name
   // PT-<TOKEN>-<DATE> anywhere in the string
-  const ptEmbedded = name.match(/PT-([^-\s]+)-\d+[A-Z]+\d+/);
+  const ptEmbedded = name.match(/PT-([^-\s]+)-\d+[A-Z]+\d+/i);
   if (ptEmbedded) {
-    const underlying = ptEmbedded[1];
-    if (toxicAssets.includes(underlying)) {
-      return underlying;
+    const underlying = ptEmbedded[1]?.trim().toLowerCase() ?? "";
+    const canonical = canonicalByNormalized.get(underlying);
+    if (canonical) {
+      return canonical;
     }
   }
 
   // MC-<TOKEN> anywhere in the string
-  const mcEmbedded = name.match(/MC-([^\s/]+)/);
+  const mcEmbedded = name.match(/MC-([^\s/]+)/i);
   if (mcEmbedded) {
-    const underlying = mcEmbedded[1];
-    if (toxicAssets.includes(underlying)) {
-      return underlying;
+    const underlying = mcEmbedded[1]?.trim().toLowerCase() ?? "";
+    const canonical = canonicalByNormalized.get(underlying);
+    if (canonical) {
+      return canonical;
     }
   }
 
@@ -86,9 +108,12 @@ function matchSubstringToxic(
   // or followed by a letter or digit (allows hyphens and spaces as delimiters).
   for (const asset of toxicAssets) {
     // Escape regex special characters in the asset symbol
-    const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = asset
+      .trim()
+      .toLowerCase()
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(`(?<![A-Za-z0-9])${escaped}(?![A-Za-z0-9])`);
-    if (re.test(name)) {
+    if (re.test(normalizedName)) {
       return asset;
     }
   }
@@ -127,6 +152,15 @@ export function detectToxicExposure(
   if (!snapshot) {
     return empty;
   }
+
+  const normalizedToxicNodeIds = new Set(
+    toxicNodeIds.map((id) => id.trim().toLowerCase()).filter(Boolean),
+  );
+  const toxicAddressKeys = new Set(
+    toxicNodeIds
+      .map((id) => extractAddressKeyFromNodeId(id))
+      .filter((value): value is string => Boolean(value)),
+  );
 
   // Build a nodeId → node name lookup
   const nodeNameById = new Map<string, string>();
@@ -203,10 +237,17 @@ export function detectToxicExposure(
 
     if (!matched) {
       // Layer 4: ID whitelist safety net
-      if (toxicNodeIds.includes(targetId)) {
+      const normalizedTargetId = targetId.trim().toLowerCase();
+      const targetAddressKey = extractAddressKeyFromNodeId(targetId);
+      if (
+        normalizedToxicNodeIds.has(normalizedTargetId) ||
+        (targetAddressKey !== null && toxicAddressKeys.has(targetAddressKey))
+      ) {
         // We don't have a specific asset symbol from this layer; use a
-        // generic sentinel so the amount is still counted.
-        const asset = "unknown";
+        // generic sentinel so the amount is still counted. When a single toxic
+        // asset is being tracked, preserve that symbol to keep the breakdown
+        // usable for generic included-exposure dashboards.
+        const asset = toxicAssets.length === 1 ? toxicAssets[0] : "unknown";
         recordMatch(edgeKey, asset, edge.allocationUsd, targetId, targetName);
       }
     }

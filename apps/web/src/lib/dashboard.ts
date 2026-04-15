@@ -42,56 +42,8 @@ export const buildAssetDashboardHref = (
   return `/asset/${encodeURIComponent(normalizedId)}/dashboard${buildAssetQuery(target)}`;
 };
 
-const RESOLV_INCIDENT_TOKENS = new Set([
-  "usr",
-  "wstusr",
-  "rlp",
-  "resolv",
-  "resolv usd",
-  "wrapped staked usr",
-  "resolv liquidity pool",
-  "mc_usr",
-]);
-
-export const resolveKnownIncidentSlug = (
-  target: AssetDashboardTarget,
-): string | null => {
-  const normalizedId = canonicalizeNodeId(target.id);
-  const candidates = new Set<string>([
-    normalizedId,
-    normalizeToken(target.name),
-    normalizeToken(target.displayName),
-    normalizeToken(target.chain),
-    normalizeToken(target.protocol),
-  ]);
-
-  for (const logoKey of target.logoKeys ?? []) {
-    candidates.add(normalizeToken(logoKey));
-  }
-
-  for (const value of Array.from(candidates)) {
-    if (!value) continue;
-
-    if (
-      RESOLV_INCIDENT_TOKENS.has(value) ||
-      value.startsWith("eth:resolv:") ||
-      value.startsWith("base:resolv:") ||
-      value.startsWith("global:resolv:")
-    ) {
-      return "resolv";
-    }
-  }
-
-  return null;
-};
-
 export const buildExposureDashboardHref = (
   target: AssetDashboardTarget,
 ): string => {
-  const incidentSlug = resolveKnownIncidentSlug(target);
-  if (incidentSlug) {
-    return `/incident/${incidentSlug}`;
-  }
-
   return buildAssetDashboardHref(target);
 };

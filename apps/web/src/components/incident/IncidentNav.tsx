@@ -27,21 +27,25 @@ export function IncidentNav({ title, lastUpdated }: IncidentNavProps) {
   const [relTime, setRelTime] = useState<string>(() =>
     lastUpdated ? formatRelativeTime(lastUpdated) : "",
   );
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
+
+  const getThemeRoot = () =>
+    document.querySelector<HTMLElement>(".incident-theme");
 
   useEffect(() => {
     const stored = localStorage.getItem("exposure-dark-mode");
-    const prefersDark =
-      stored === "1" ||
-      (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    setDark(prefersDark);
-    document.documentElement.classList.toggle("dark", prefersDark);
+    const nextDark = stored === null ? true : stored === "1";
+    setDark(nextDark);
+    getThemeRoot()?.classList.toggle("dark", nextDark);
+    if (stored === null) {
+      localStorage.setItem("exposure-dark-mode", "1");
+    }
   }, []);
 
   const toggleDark = () => {
     const next = !dark;
     setDark(next);
-    document.documentElement.classList.toggle("dark", next);
+    getThemeRoot()?.classList.toggle("dark", next);
     localStorage.setItem("exposure-dark-mode", next ? "1" : "0");
   };
 

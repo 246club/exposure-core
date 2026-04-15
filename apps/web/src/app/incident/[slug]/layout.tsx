@@ -50,7 +50,7 @@ export default async function IncidentLayout({
 
   return (
     <div
-      className="min-h-screen"
+      className="incident-theme dark min-h-screen"
       style={{
         backgroundColor: "var(--surface-secondary)",
         color: "var(--text-primary)",

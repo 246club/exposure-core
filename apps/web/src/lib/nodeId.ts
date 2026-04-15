@@ -19,8 +19,24 @@ export const canonicalizeProtocolToken = (raw: string): string => {
   return p;
 };
 
+const decodeNodeId = (raw: string): string => {
+  let current = raw.trim();
+
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) break;
+      current = decoded;
+    } catch {
+      break;
+    }
+  }
+
+  return current;
+};
+
 export const canonicalizeNodeId = (raw: string): string => {
-  const normalized = raw.trim();
+  const normalized = decodeNodeId(raw);
   if (!normalized) return "";
 
   const parts = normalized.split(":");

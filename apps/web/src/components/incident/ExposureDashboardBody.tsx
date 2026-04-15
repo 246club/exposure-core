@@ -1,127 +1,62 @@
+"use client";
+
 import type { ReactNode } from "react";
-
-import type { ToxicAssetDef, VaultExposure } from "@/lib/incident/types";
-
-import { IncidentBanner } from "./IncidentBanner";
-import { PriceChart, type PriceChartAsset } from "./PriceChart";
-import { BadDebtPanel, type CoveringProtocol } from "./BadDebtPanel";
-import { MetricCard } from "./MetricCard";
-import { ProtocolRow } from "./ProtocolRow";
-import { TimelinePanel, type TimelineEntry } from "./TimelinePanel";
-import { VaultTable } from "./VaultTable";
-import { FollowBanner } from "./FollowBanner";
-import { ToxicAssetDonut, type DonutEntry } from "./ToxicAssetDonut";
-import { DistributionRadar, type RadarEntry } from "./DistributionRadar";
-import { AnimatedCounter } from "./AnimatedCounter";
-
-export interface DashboardProtocolBreakdown {
-  asset: string;
-  amountUsd: number;
-  color: string;
-}
-
-export interface DashboardProtocolRow {
-  name: string;
-  logoSrc?: string;
-  fallbackInitials: string;
-  fallbackColor: string;
-  meta: string;
-  amount?: string;
-  statusText?: string;
-  breakdown?: DashboardProtocolBreakdown[];
-}
-
-export interface DashboardMetric {
-  label: string;
-  value: number;
-  format?: "usd" | "number" | "percent";
-}
+import { FollowBanner } from "@/components/incident/FollowBanner";
 
 interface ExposureDashboardBodyProps {
-  banner: {
-    title: string;
-    description: string;
-    timestamp: string;
-    status: "active" | "resolved";
-  };
-  totalPanel: {
-    title: string;
-    value: number;
-    subtitle: string;
-    note?: string;
-  };
-  priceChartAssets?: PriceChartAsset[];
-  debtPanel: {
-    title: string;
-    realizedDebt: number;
-    coveredDebt: number;
-    uncoveredGap: number;
-    recoveryRate: number;
-    coveringProtocols?: CoveringProtocol[];
-    labels?: {
-      realizedDebt?: string;
-      coveredDebt?: string;
-      uncoveredGap?: string;
-      recoveryRate?: string;
-    };
-  };
-  donutPanel: {
-    title: string;
-    entries: DonutEntry[];
-    total: number;
-  };
-  curatorPanel: {
-    title: string;
-    content: ReactNode;
-  };
-  metrics: DashboardMetric[];
-  protocolRadarEntries: RadarEntry[];
-  chainRadarEntries: RadarEntry[];
-  protocolPanel: {
-    title: string;
-    rows: DashboardProtocolRow[];
-  };
-  timelinePanel: {
-    title: string;
-    entries: TimelineEntry[];
-  };
-  vaultTablePanel: {
-    title: string;
-    vaults: VaultExposure[];
-    toxicAssets: ToxicAssetDef[];
-  };
-  footer: {
-    left: string;
-    right: string;
-  };
+  banner: ReactNode;
+  totalValue: ReactNode;
+  totalMeta: ReactNode;
+  priceChart: ReactNode;
+  statusTitle: string;
+  statusPanel: ReactNode;
+  donutPanel: ReactNode;
+  curatorTitle: string;
+  curatorPanel: ReactNode;
+  metrics: ReactNode;
+  protocolDistribution: ReactNode;
+  chainDistribution: ReactNode;
+  protocolListTitle: string;
+  protocolList: ReactNode;
+  timeline: ReactNode;
+  tableTitle: string;
+  table: ReactNode;
+  lastUpdatedLabel: string;
 }
 
-const panelHeader = (title: string) => (
-  <div
-    className="text-[8px] font-black tracking-[0.3em] uppercase mb-3 pb-2"
-    style={{
-      color: "var(--text-tertiary)",
-      borderBottom: "1px solid var(--border)",
-    }}
-  >
-    {title}
-  </div>
-);
+function panelHeader(title: string) {
+  return (
+    <div
+      className="text-[8px] font-black tracking-[0.3em] uppercase mb-3 pb-2"
+      style={{
+        color: "var(--text-tertiary)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      {title}
+    </div>
+  );
+}
 
 export function ExposureDashboardBody({
   banner,
-  totalPanel,
-  priceChartAssets,
-  debtPanel,
+  totalValue,
+  totalMeta,
+  priceChart,
+  statusTitle,
+  statusPanel,
   donutPanel,
+  curatorTitle,
   curatorPanel,
   metrics,
-  protocolRadarEntries,
-  chainRadarEntries,
-  protocolPanel,
-  timelinePanel,
-  vaultTablePanel,
-  footer,
+  protocolDistribution,
+  chainDistribution,
+  protocolListTitle,
+  protocolList,
+  timeline,
+  tableTitle,
+  table,
+  lastUpdatedLabel,
 }: ExposureDashboardBodyProps) {
   return (
     <>
@@ -134,12 +69,7 @@ export function ExposureDashboardBody({
             className="px-5 py-3"
             style={{ backgroundColor: "var(--surface)" }}
           >
-            <IncidentBanner
-              title={banner.title}
-              description={banner.description}
-              timestamp={banner.timestamp}
-              status={banner.status}
-            />
+            {banner}
           </div>
 
           <div
@@ -150,7 +80,7 @@ export function ExposureDashboardBody({
               className="px-5 py-4"
               style={{ backgroundColor: "var(--surface)" }}
             >
-              {panelHeader(totalPanel.title)}
+              {panelHeader("Total At-Risk Allocation")}
               <div className="flex flex-col gap-1">
                 <div
                   className="font-mono font-bold"
@@ -161,26 +91,18 @@ export function ExposureDashboardBody({
                     color: "var(--text-primary)",
                   }}
                 >
-                  <AnimatedCounter target={totalPanel.value} format="usd" />
+                  {totalValue}
                 </div>
                 <p
                   className="uppercase font-semibold"
                   style={{ fontSize: 10, color: "var(--text-tertiary)" }}
                 >
-                  {totalPanel.subtitle}
+                  {totalMeta}
                 </p>
-                {totalPanel.note ? (
-                  <p
-                    className="text-xs leading-relaxed mt-2"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    {totalPanel.note}
-                  </p>
-                ) : null}
               </div>
             </div>
 
-            <PriceChart assets={priceChartAssets} />
+            {priceChart}
           </div>
 
           <div
@@ -191,26 +113,16 @@ export function ExposureDashboardBody({
               className="px-5 py-4"
               style={{ backgroundColor: "var(--surface)" }}
             >
-              {panelHeader(debtPanel.title)}
-              <BadDebtPanel
-                realizedDebt={debtPanel.realizedDebt}
-                coveredDebt={debtPanel.coveredDebt}
-                uncoveredGap={debtPanel.uncoveredGap}
-                recoveryRate={debtPanel.recoveryRate}
-                coveringProtocols={debtPanel.coveringProtocols}
-                labels={debtPanel.labels}
-              />
+              {panelHeader(statusTitle)}
+              {statusPanel}
             </div>
 
             <div
               className="px-5 py-4"
               style={{ backgroundColor: "var(--surface)" }}
             >
-              {panelHeader(donutPanel.title)}
-              <ToxicAssetDonut
-                entries={donutPanel.entries}
-                total={donutPanel.total}
-              />
+              {panelHeader("By Toxic Asset")}
+              {donutPanel}
             </div>
           </div>
 
@@ -218,22 +130,15 @@ export function ExposureDashboardBody({
             className="px-5 py-4"
             style={{ backgroundColor: "var(--surface)" }}
           >
-            {panelHeader(curatorPanel.title)}
-            {curatorPanel.content}
+            {panelHeader(curatorTitle)}
+            {curatorPanel}
           </div>
 
           <div
             className="grid grid-cols-2 md:grid-cols-4"
             style={{ gap: 1, backgroundColor: "var(--border)" }}
           >
-            {metrics.map((metric) => (
-              <MetricCard
-                key={metric.label}
-                label={metric.label}
-                value={metric.value}
-                format={metric.format}
-              />
-            ))}
+            {metrics}
           </div>
 
           <div
@@ -245,14 +150,14 @@ export function ExposureDashboardBody({
               style={{ backgroundColor: "var(--surface)" }}
             >
               {panelHeader("Protocols Distribution")}
-              <DistributionRadar entries={protocolRadarEntries} />
+              {protocolDistribution}
             </div>
             <div
               className="px-5 py-4"
               style={{ backgroundColor: "var(--surface)" }}
             >
               {panelHeader("Chains Distribution")}
-              <DistributionRadar entries={chainRadarEntries} />
+              {chainDistribution}
             </div>
           </div>
 
@@ -264,30 +169,16 @@ export function ExposureDashboardBody({
               className="px-5 py-4"
               style={{ backgroundColor: "var(--surface)" }}
             >
-              {panelHeader(protocolPanel.title)}
-              <div className="space-y-1">
-                {protocolPanel.rows.map((row) => (
-                  <ProtocolRow
-                    key={row.name}
-                    name={row.name}
-                    logoSrc={row.logoSrc}
-                    fallbackInitials={row.fallbackInitials}
-                    fallbackColor={row.fallbackColor}
-                    meta={row.meta}
-                    amount={row.amount}
-                    statusText={row.statusText}
-                    breakdown={row.breakdown}
-                  />
-                ))}
-              </div>
+              {panelHeader(protocolListTitle)}
+              {protocolList}
             </div>
 
             <div
               className="px-5 py-4"
               style={{ backgroundColor: "var(--surface)" }}
             >
-              {panelHeader(timelinePanel.title)}
-              <TimelinePanel entries={timelinePanel.entries} />
+              {panelHeader("Timeline")}
+              {timeline}
             </div>
           </div>
 
@@ -295,11 +186,8 @@ export function ExposureDashboardBody({
             className="px-5 py-4"
             style={{ backgroundColor: "var(--surface)" }}
           >
-            {panelHeader(vaultTablePanel.title)}
-            <VaultTable
-              vaults={vaultTablePanel.vaults}
-              toxicAssets={vaultTablePanel.toxicAssets}
-            />
+            {panelHeader(tableTitle)}
+            {table}
           </div>
 
           <div
@@ -309,8 +197,11 @@ export function ExposureDashboardBody({
               color: "var(--text-tertiary)",
             }}
           >
-            <span>{footer.left}</span>
-            <span>{footer.right}</span>
+            <span>
+              Exposure Core · Data refreshed every 10 min · Last update:{" "}
+              {lastUpdatedLabel}
+            </span>
+            <span>Approximate data · Verify with each protocol</span>
           </div>
         </div>
       </div>

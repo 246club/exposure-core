@@ -18,13 +18,24 @@ import type {
   ToxicBreakdownEntry,
 } from "@/lib/incident/types";
 import type { GraphSnapshot } from "@/types";
+import { IncidentBanner } from "@/components/incident/IncidentBanner";
+import { PriceChart } from "@/components/incident/PriceChart";
+import { BadDebtPanel } from "@/components/incident/BadDebtPanel";
 import { BadDebtByCurator } from "@/components/incident/BadDebtByCurator";
-import { type DonutEntry } from "@/components/incident/ToxicAssetDonut";
-import { type RadarEntry } from "@/components/incident/DistributionRadar";
+import { ExposureDashboardBody } from "@/components/incident/ExposureDashboardBody";
+import { MetricCard } from "@/components/incident/MetricCard";
+import { ProtocolRow } from "@/components/incident/ProtocolRow";
+import { TimelinePanel } from "@/components/incident/TimelinePanel";
+import { AnimatedCounter } from "@/components/incident/AnimatedCounter";
+import { VaultTable } from "@/components/incident/VaultTable";
 import {
-  ExposureDashboardBody,
-  type DashboardProtocolRow,
-} from "@/components/incident/ExposureDashboardBody";
+  ToxicAssetDonut,
+  type DonutEntry,
+} from "@/components/incident/ToxicAssetDonut";
+import {
+  DistributionRadar,
+  type RadarEntry,
+} from "@/components/incident/DistributionRadar";
 
 export const revalidate = 600;
 
@@ -38,6 +49,10 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr;
   }
+}
+
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function computeSummary(vaults: VaultExposure[]): IncidentSummary {
@@ -89,6 +104,20 @@ function computeSummary(vaults: VaultExposure[]): IncidentSummary {
     dataTimestamp: new Date().toISOString(),
   };
 }
+
+// Protocol display config for logos + fallback
+const PROTOCOL_DISPLAY: Record<string, { color: string; initials: string }> = {
+  morpho: { color: "#2563eb", initials: "M" },
+  euler: { color: "#e04040", initials: "E" },
+  midas: { color: "#8b5cf6", initials: "Mi" },
+  inverse: { color: "#000000", initials: "IN" },
+  fluid: { color: "#3b82f6", initials: "FL" },
+  gearbox: { color: "#4a4a4a", initials: "G" },
+  yo: { color: "#6366f1", initials: "YO" },
+  venus: { color: "#f59e0b", initials: "V" },
+  "lista-dao": { color: "#3b82f6", initials: "L" },
+  upshift: { color: "#8b5cf6", initials: "U" },
+};
 
 export default async function IncidentPage({
   params,
@@ -939,106 +968,131 @@ export default async function IncidentPage({
     )
     .reduce((sum, ve) => sum + ve.toxicExposureUsd, 0);
 
-  const protocolRows: DashboardProtocolRow[] = sortedProtocols.map(
-    ([protocol, data]) => {
-      const display = getProtocolDisplay(protocol);
-      const protocolBreakdown = vaults
-        .filter((ve) => ve.vault.protocol === protocol)
-        .flatMap((ve) => ve.breakdown)
-        .reduce<ToxicBreakdownEntry[]>((acc, breakdown) => {
-          const existing = acc.find((entry) => entry.asset === breakdown.asset);
-          if (existing) {
-            existing.amountUsd += breakdown.amountUsd;
-            existing.pct += breakdown.pct;
-          } else {
-            acc.push({ ...breakdown });
-          }
-          return acc;
-        }, []);
-
-      return {
-        name: display.name,
-        logoSrc: getProtocolIcon(protocol),
-        fallbackInitials: display.initials,
-        fallbackColor: display.color,
-        meta: `${data.vaultCount} vault${data.vaultCount !== 1 ? "s" : ""}`,
-        amount:
-          data.exposureUsd > 0 ? formatUsdCompact(data.exposureUsd) : "Unknown",
-        breakdown: protocolBreakdown.map((breakdown) => ({
-          asset: breakdown.asset,
-          amountUsd: breakdown.amountUsd,
-          color: assetColorBySymbol[breakdown.asset] ?? "rgba(0,0,0,0.15)",
-        })),
-      };
-    },
-  );
-
   return (
     <div
       className="min-h-screen"
       style={{ backgroundColor: "var(--surface-secondary)" }}
     >
       <ExposureDashboardBody
-        banner={{
-          title: config.title,
-          description: config.description,
-          timestamp: formatDate(config.incidentDate),
-          status: config.status,
-        }}
-        totalPanel={{
-          title: "Total At-Risk Allocation",
-          value: summary.totalToxicExposureUsd,
-          subtitle: `across ${summary.vaultCount} vault${summary.vaultCount !== 1 ? "s" : ""} · ${summary.protocolCount} protocol${summary.protocolCount !== 1 ? "s" : ""}`,
-        }}
-        debtPanel={{
-          title: "Bad Debt Status",
-          realizedDebt: summary.totalToxicExposureUsd,
-          coveredDebt: coveredTotal,
-          uncoveredGap: summary.totalToxicExposureUsd - coveredTotal,
-          recoveryRate:
-            summary.totalToxicExposureUsd > 0
-              ? coveredTotal / summary.totalToxicExposureUsd
-              : 0,
-          coveringProtocols: coveringProtocolsList,
-        }}
-        donutPanel={{
-          title: "By Toxic Asset",
-          entries: donutEntries,
-          total: totalAssetExposure,
-        }}
-        curatorPanel={{
-          title: "Estimated Bad Debt by Curator",
-          content: <BadDebtByCurator vaults={vaults} />,
-        }}
-        metrics={[
-          { label: "Affected Vaults", value: summary.vaultCount },
-          { label: "Protocols Impacted", value: summary.protocolCount },
-          { label: "Promised / Recovered", value: summary.coveringCount },
-          {
-            label: "Highest Exposure %",
-            value: highestPctVault ? highestPctVault.exposurePct * 100 : 0,
-            format: "percent",
-          },
-        ]}
-        protocolRadarEntries={protocolRadarEntries}
-        chainRadarEntries={chainRadarEntries}
-        protocolPanel={{
-          title: "Exposure by Protocol",
-          rows: protocolRows,
-        }}
-        timelinePanel={{
-          title: "Timeline",
-          entries: timelineEntries,
-        }}
-        vaultTablePanel={{
-          title: "All Affected Vaults",
-          vaults,
-          toxicAssets: config.toxicAssets,
-        }}
-        footer={{
-          left: `Exposure Core · Data refreshed every 10 min · Last update: ${timestamp}`,
-          right: "Approximate data · Verify with each protocol",
-        }}
+        banner={
+          <IncidentBanner
+            title={config.title}
+            description={config.description}
+            timestamp={formatDate(config.incidentDate)}
+            status={config.status}
+          />
+        }
+        totalValue={
+          <AnimatedCounter
+            target={summary.totalToxicExposureUsd}
+            format="usd"
+          />
+        }
+        totalMeta={
+          <>
+            across {summary.vaultCount} vault
+            {summary.vaultCount !== 1 ? "s" : ""} · {summary.protocolCount}{" "}
+            protocol{summary.protocolCount !== 1 ? "s" : ""}
+          </>
+        }
+        priceChart={<PriceChart />}
+        statusTitle="Bad Debt Status"
+        statusPanel={
+          <BadDebtPanel
+            realizedDebt={summary.totalToxicExposureUsd}
+            coveredDebt={coveredTotal}
+            uncoveredGap={summary.totalToxicExposureUsd - coveredTotal}
+            recoveryRate={
+              summary.totalToxicExposureUsd > 0
+                ? coveredTotal / summary.totalToxicExposureUsd
+                : 0
+            }
+            coveringProtocols={coveringProtocolsList}
+          />
+        }
+        donutPanel={
+          <ToxicAssetDonut entries={donutEntries} total={totalAssetExposure} />
+        }
+        curatorTitle="Estimated Bad Debt by Curator"
+        curatorPanel={<BadDebtByCurator vaults={vaults} />}
+        metrics={
+          <>
+            <MetricCard
+              label="Affected Vaults"
+              value={summary.vaultCount}
+              format="number"
+            />
+            <MetricCard
+              label="Protocols Impacted"
+              value={summary.protocolCount}
+              format="number"
+            />
+            <MetricCard
+              label="Promised / Recovered"
+              value={summary.coveringCount}
+              format="number"
+            />
+            <MetricCard
+              label="Highest Exposure %"
+              value={highestPctVault ? highestPctVault.exposurePct * 100 : 0}
+              format="percent"
+            />
+          </>
+        }
+        protocolDistribution={
+          <DistributionRadar entries={protocolRadarEntries} />
+        }
+        chainDistribution={<DistributionRadar entries={chainRadarEntries} />}
+        protocolListTitle="Exposure by Protocol"
+        protocolList={
+          <div className="space-y-1">
+            {sortedProtocols.map(([protocol, data]) => {
+              const display = PROTOCOL_DISPLAY[protocol] ?? {
+                color: "#888",
+                initials: protocol.slice(0, 2).toUpperCase(),
+              };
+              const protocolBreakdown = vaults
+                .filter((ve) => ve.vault.protocol === protocol)
+                .flatMap((ve) => ve.breakdown)
+                .reduce<ToxicBreakdownEntry[]>((acc, b) => {
+                  const existing = acc.find((e) => e.asset === b.asset);
+                  if (existing) {
+                    existing.amountUsd += b.amountUsd;
+                    existing.pct += b.pct;
+                  } else {
+                    acc.push({ ...b });
+                  }
+                  return acc;
+                }, []);
+
+              return (
+                <div key={protocol}>
+                  <ProtocolRow
+                    name={capitalize(protocol)}
+                    logoSrc={getProtocolIcon(protocol)}
+                    fallbackInitials={display.initials}
+                    fallbackColor={display.color}
+                    meta={`${data.vaultCount} vault${data.vaultCount !== 1 ? "s" : ""}`}
+                    amount={
+                      data.exposureUsd > 0
+                        ? formatUsdCompact(data.exposureUsd)
+                        : "Unknown"
+                    }
+                    breakdown={protocolBreakdown.map((b) => ({
+                      asset: b.asset,
+                      amountUsd: b.amountUsd,
+                      color: assetColorBySymbol[b.asset] ?? "rgba(0,0,0,0.15)",
+                    }))}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        }
+        timeline={<TimelinePanel entries={timelineEntries} />}
+        tableTitle="All Affected Vaults"
+        table={<VaultTable vaults={vaults} toxicAssets={config.toxicAssets} />}
+        lastUpdatedLabel={timestamp}
       />
     </div>
   );

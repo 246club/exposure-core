@@ -39,17 +39,13 @@ interface PricePoint {
 
 type PriceData = Record<string, PricePoint[]>;
 
-export function PriceChart({
-  assets = DEFAULT_ASSETS,
-}: {
-  assets?: PriceChartAsset[];
-}) {
-  const normalizedAssets = assets.length > 0 ? assets : DEFAULT_ASSETS;
+export function PriceChart({ assets }: { assets?: PriceChartAsset[] }) {
+  const normalizedAssets = assets ?? DEFAULT_ASSETS;
   const [data, setData] = useState<PriceData>(() =>
     Object.fromEntries(normalizedAssets.map((asset) => [asset.symbol, []])),
   );
   const [activeAsset, setActiveAsset] = useState<string>(
-    normalizedAssets[0]?.symbol ?? DEFAULT_ASSETS[0].symbol,
+    normalizedAssets[0]?.symbol ?? "",
   );
   const [activeRange, setActiveRange] = useState<TimeRange>("7D");
   const [loading, setLoading] = useState(true);
@@ -59,13 +55,19 @@ export function PriceChart({
     setData(
       Object.fromEntries(normalizedAssets.map((asset) => [asset.symbol, []])),
     );
-    setActiveAsset(normalizedAssets[0]?.symbol ?? DEFAULT_ASSETS[0].symbol);
+    setActiveAsset(normalizedAssets[0]?.symbol ?? "");
     setActiveRange("7D");
     setLoading(true);
     setError(false);
   }, [normalizedAssets]);
 
   useEffect(() => {
+    if (normalizedAssets.length === 0) {
+      setLoading(false);
+      setError(true);
+      return;
+    }
+
     const controller = new AbortController();
 
     async function fetchAll() {
@@ -77,28 +79,23 @@ export function PriceChart({
               { signal: controller.signal },
             );
             if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
-
             const json = await res.json();
-            if (!Array.isArray(json.prices)) {
+            if (!Array.isArray(json.prices))
               throw new Error("Unexpected response");
-            }
-
             const points: PricePoint[] = json.prices.map(
               ([timestamp, price]: [number, number]) => ({
                 timestamp,
                 price,
               }),
             );
-
             return { symbol: asset.symbol, points };
           }),
         );
-
-        const nextData: PriceData = {};
-        for (const result of results) {
-          nextData[result.symbol] = result.points;
+        const newData: PriceData = {};
+        for (const r of results) {
+          newData[r.symbol] = r.points;
         }
-        setData(nextData);
+        setData(newData);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           console.error("Failed to fetch price data:", err);
@@ -108,34 +105,29 @@ export function PriceChart({
         if (!controller.signal.aborted) setLoading(false);
       }
     }
-
-    void fetchAll();
-
+    fetchAll();
     return () => controller.abort();
   }, [normalizedAssets]);
 
   const assetConfig =
     normalizedAssets.find((asset) => asset.symbol === activeAsset) ??
-    normalizedAssets[0] ??
-    DEFAULT_ASSETS[0];
-  const assetData = data[activeAsset] ?? [];
+    normalizedAssets[0];
+  const assetData = activeAsset ? (data[activeAsset] ?? []) : [];
 
   const filtered = useMemo(() => {
     const cutoff = Date.now() - RANGE_DAYS[activeRange] * 24 * 60 * 60 * 1000;
-    return assetData.filter((point) => point.timestamp >= cutoff);
+    return assetData.filter((p) => p.timestamp >= cutoff);
   }, [assetData, activeRange]);
 
   const { currentPrice, priceChange24h } = useMemo(() => {
     if (assetData.length === 0) return { currentPrice: 0, priceChange24h: 0 };
-
     const price = assetData[assetData.length - 1].price;
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const dayAgoPoint = assetData.find((point) => point.timestamp >= oneDayAgo);
+    const dayAgoPoint = assetData.find((p) => p.timestamp >= oneDayAgo);
     const change =
       dayAgoPoint && dayAgoPoint.price > 0
         ? ((price - dayAgoPoint.price) / dayAgoPoint.price) * 100
         : 0;
-
     return { currentPrice: price, priceChange24h: change };
   }, [assetData]);
 
@@ -143,14 +135,13 @@ export function PriceChart({
   const changeColor = isDown ? "#E11D48" : "#00A35C";
   const changeSign = isDown ? "" : "+";
 
+  // Compute Y domain from filtered data
   const yDomain = useMemo(() => {
     if (filtered.length === 0) return [0, 1.05] as [number, number];
-
-    const prices = filtered.map((point) => point.price);
+    const prices = filtered.map((p) => p.price);
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     const padding = (max - min) * 0.1 || 0.01;
-
     return [Math.max(0, min - padding), max + padding] as [number, number];
   }, [filtered]);
 
@@ -159,6 +150,7 @@ export function PriceChart({
       className="px-5 py-4 flex flex-col"
       style={{ backgroundColor: "var(--surface)" }}
     >
+      {/* Panel label */}
       <p
         className="uppercase font-black mb-2"
         style={{
@@ -170,7 +162,8 @@ export function PriceChart({
         Token Prices
       </p>
 
-      <div className="flex items-center gap-1 mb-3 flex-wrap">
+      {/* Asset selector */}
+      <div className="flex items-center gap-1 mb-3">
         {normalizedAssets.map((asset) => {
           const active = asset.symbol === activeAsset;
           return (
@@ -194,7 +187,8 @@ export function PriceChart({
         })}
       </div>
 
-      {!loading && assetData.length > 0 && (
+      {/* Price + change */}
+      {!loading && assetData.length > 0 && assetConfig && (
         <div className="flex items-baseline gap-2 mb-3">
           <span
             className="font-mono font-bold"
@@ -224,6 +218,7 @@ export function PriceChart({
         </div>
       )}
 
+      {/* Chart */}
       <div className="flex-1" style={{ minHeight: 120 }}>
         {loading ? (
           <div
@@ -232,7 +227,7 @@ export function PriceChart({
           >
             Loading…
           </div>
-        ) : error ? (
+        ) : error || !assetConfig ? (
           <div
             className="flex items-center justify-center h-full"
             style={{ color: "var(--text-tertiary)", fontSize: 11 }}
@@ -264,14 +259,14 @@ export function PriceChart({
               </defs>
               <XAxis
                 dataKey="timestamp"
-                tickFormatter={(timestamp: number) => {
-                  const date = new Date(timestamp);
+                tickFormatter={(ts: number) => {
+                  const d = new Date(ts);
                   return activeRange === "1D"
-                    ? date.toLocaleTimeString([], {
+                    ? d.toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })
-                    : date.toLocaleDateString([], {
+                    : d.toLocaleDateString([], {
                         month: "short",
                         day: "numeric",
                       });
@@ -286,7 +281,7 @@ export function PriceChart({
                 tick={{ fontSize: 9, fill: "var(--text-tertiary)" }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(value: number) => `$${value.toFixed(2)}`}
+                tickFormatter={(v: number) => `$${v.toFixed(2)}`}
                 width={45}
               />
               <Tooltip
@@ -297,8 +292,8 @@ export function PriceChart({
                   fontSize: 11,
                   padding: "6px 10px",
                 }}
-                labelFormatter={(timestamp) =>
-                  new Date(timestamp as number).toLocaleString([], {
+                labelFormatter={(ts) =>
+                  new Date(ts as number).toLocaleString([], {
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
@@ -324,6 +319,7 @@ export function PriceChart({
         )}
       </div>
 
+      {/* Time range selector */}
       <div className="flex items-center gap-1 mt-2">
         {TIME_RANGES.map((range) => {
           const active = range === activeRange;
@@ -339,7 +335,7 @@ export function PriceChart({
                 fontSize: 9,
                 fontWeight: 900,
                 letterSpacing: "0.08em",
-                textTransform: "uppercase",
+                textTransform: "uppercase" as const,
                 border: active ? "none" : "1px solid var(--border)",
               }}
             >
